@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeShip — Deploy Risk Engine</title>
+  <meta name="description" content="SafeShip uses ML to score every deploy for risk before it hits production. Stop 3am incidents before they start." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #070B14;
+      --surface: #0D1321;
+      --surface2: #111827;
+      --border: rgba(255,255,255,0.07);
+      --border-bright: rgba(99,179,237,0.25);
+      --accent: #4F8EF7;
+      --accent2: #7C3AED;
+      --green: #34D399;
+      --red: #F87171;
+      --yellow: #FBBF24;
+      --text: #F1F5F9;
+      --muted: #64748B;
+      --card-glow: rgba(79,142,247,0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+    /* Nav */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(7,11,20,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #4F8EF7, #7C3AED);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 0.875rem;
+      font-weight: 500; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent); color: #fff !important;
+      padding: 0.5rem 1.25rem; border-radius: 8px;
+      font-weight: 600 !important;
+    }
+    .nav-cta:hover { background: #3b7ae0 !important; color: #fff !important; }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 8rem 2rem 4rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,142,247,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,58,237,0.10) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(79,142,247,0.12); border: 1px solid rgba(79,142,247,0.3);
+      padding: 0.375rem 1rem; border-radius: 100px;
+      font-size: 0.8rem; font-weight: 600; color: var(--accent);
+      margin-bottom: 1.5rem; letter-spacing: 0.5px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+    h1 {
+      font-size: clamp(2.5rem, 7vw, 5.5rem);
+      font-weight: 900; line-height: 1.05; letter-spacing: -2px;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    h1 span {
+      background: linear-gradient(135deg, #4F8EF7, #7C3AED, #F87171);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem); color: var(--muted); max-width: 560px;
+      line-height: 1.7; margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-actions {
+      display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4F8EF7, #7C3AED);
+      color: #fff; border: none; padding: 0.875rem 2rem;
+      border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(79,142,247,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(79,142,247,0.5); }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border-bright); padding: 0.875rem 2rem;
+      border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--surface); border-color: var(--accent); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; margin: 4rem auto; max-width: 900px; overflow: hidden;
+    }
+    .stat-item {
+      flex: 1; min-width: 160px; padding: 2rem 1.5rem; text-align: center;
+      border-right: 1px solid var(--border); transition: background 0.2s;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item:hover { background: rgba(79,142,247,0.05); }
+    .stat-value {
+      font-size: 2rem; font-weight: 900; letter-spacing: -1px;
+      background: linear-gradient(135deg, #4F8EF7, #7C3AED);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; font-weight: 500; }
+
+    /* Section */
+    section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-tag {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; color: var(--accent);
+      text-transform: uppercase; margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; letter-spacing: -1px;
+      margin-bottom: 1rem; line-height: 1.15;
+    }
+    .section-desc { color: var(--muted); font-size: 1.1rem; max-width: 560px; line-height: 1.7; margin-bottom: 3rem; }
+
+    /* Before/After */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card {
+      border-radius: 16px; padding: 2rem;
+      border: 1px solid var(--border);
+    }
+    .compare-card.danger {
+      background: rgba(248,113,113,0.05); border-color: rgba(248,113,113,0.2);
+    }
+    .compare-card.safe {
+      background: rgba(52,211,153,0.05); border-color: rgba(52,211,153,0.2);
+    }
+    .compare-title { font-weight: 700; font-size: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .compare-title.danger { color: var(--red); }
+    .compare-title.safe { color: var(--green); }
+    .compare-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+    .compare-list li {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      font-size: 0.9rem; color: var(--muted); line-height: 1.5;
+    }
+    .compare-list li .icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Score Demo */
+    .score-demo {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2.5rem; margin: 3rem 0;
+    }
+    .score-demo-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 1.5rem; }
+    .score-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .input-group label { font-size: 0.75rem; color: var(--muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }
+    .input-group input, .input-group select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.6rem 0.875rem; color: var(--text);
+      font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;
+      transition: border-color 0.2s; outline: none;
+    }
+    .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+    .score-result {
+      display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+      padding: 1.5rem; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--bg);
+    }
+    .score-circle {
+      width: 90px; height: 90px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-weight: 900; position: relative; flex-shrink: 0;
+    }
+    .score-num { font-size: 1.75rem; line-height: 1; }
+    .score-max { font-size: 0.65rem; color: var(--muted); }
+    .verdict-badge {
+      display: inline-block; padding: 0.35rem 1rem; border-radius: 100px;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;
+    }
+    .verdict-safe { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+    .verdict-blocked { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+    .verdict-caution { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .top-factors { flex: 1; }
+    .top-factors h4 { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-bottom: 0.75rem; }
+    .factor-bar { margin-bottom: 0.5rem; }
+    .factor-label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem; }
+    .factor-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .factor-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+    /* ML Cards */
+    .ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .ml-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 1.75rem; transition: all 0.3s; cursor: default;
+    }
+    .ml-card:hover { border-color: var(--border-bright); background: var(--surface2); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .ml-card-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .ml-card-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+    .ml-card-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* Features Table */
+    .features-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .features-table th {
+      text-align: left; padding: 0.875rem 1rem;
+      background: var(--surface); color: var(--muted);
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .features-table th:first-child { border-radius: 8px 0 0 0; }
+    .features-table th:last-child { border-radius: 0 8px 0 0; }
+    .features-table td {
+      padding: 0.875rem 1rem; border-bottom: 1px solid var(--border);
+      color: var(--muted); transition: background 0.2s;
+    }
+    .features-table tr:hover td { background: rgba(79,142,247,0.04); }
+    .features-table td:first-child { color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    .weight-badge {
+      display: inline-block; padding: 0.2rem 0.6rem; border-radius: 100px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .weight-very-high { background: rgba(248,113,113,0.15); color: var(--red); }
+    .weight-high { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .weight-medium { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .weight-low { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+    /* Arch */
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.25rem; }
+    .arch-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem;
+      transition: all 0.3s;
+    }
+    .arch-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+    .arch-card-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
+    .arch-card-sub { font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 0.75rem; font-family: 'JetBrains Mono', monospace; }
+    .arch-card-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+
+    /* Code */
+    .code-block {
+      background: #0A0E1A; border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; overflow-x: auto; position: relative;
+    }
+    .code-block pre { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.7; color: #CBD5E1; }
+    .code-block .kw { color: #7C3AED; }
+    .code-block .str { color: #34D399; }
+    .code-block .fn { color: #4F8EF7; }
+    .code-block .cm { color: #4B5563; }
+    .code-copy {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); padding: 0.3rem 0.75rem; border-radius: 6px;
+      font-size: 0.75rem; cursor: pointer; transition: all 0.2s;
+    }
+    .code-copy:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Pipeline Visual */
+    .pipeline {
+      display: flex; align-items: center; gap: 0; overflow-x: auto;
+      padding: 2rem 0; flex-wrap: wrap; justify-content: center; gap: 0;
+    }
+    .pipe-step {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 1rem 1.5rem; border-radius: 10px; text-align: center;
+      min-width: 120px; transition: all 0.3s; position: relative;
+    }
+    .pipe-step.active { border-color: var(--accent); background: rgba(79,142,247,0.08); }
+    .pipe-step.blocked { border-color: var(--red); background: rgba(248,113,113,0.08); }
+    .pipe-step.safe { border-color: var(--green); background: rgba(52,211,153,0.08); }
+    .pipe-step-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .pipe-step-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+    .pipe-step-name { font-size: 0.85rem; font-weight: 700; }
+    .pipe-arrow {
+      font-size: 1.25rem; color: var(--muted); padding: 0 0.5rem; flex-shrink: 0;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center; padding: 6rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(79,142,247,0.05), transparent);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .cta-section h2 { margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); font-size: 1.1rem; max-width: 480px; margin: 0 auto 2.5rem; line-height: 1.7; }
+
+    /* Footer */
+    footer {
+      text-align: center; padding: 2.5rem; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.85rem;
+    }
+    footer strong { color: var(--text); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--surface); border: 1px solid var(--border-bright);
+      padding: 0.875rem 1.25rem; border-radius: 10px;
+      font-size: 0.875rem; color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: slideIn 0.3s ease;
+      z-index: 9999; display: flex; align-items: center; gap: 0.5rem;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ─── Score Calculator ─────────────────────────────────────────────────────
+function calcScore({ diffSize, failureRate, hour, day, isHotfix, testPassRate }) {
+  let score = 0;
+  // diff size risk (0–30 pts)
+  if (diffSize > 1000) score += 30;
+  else if (diffSize > 500) score += 20;
+  else if (diffSize > 150) score += 12;
+  else score += 3;
+  // failure rate (0–30 pts)
+  score += Math.round(failureRate * 30);
+  // time of day (0–15 pts)
+  if (hour >= 15 && hour <= 18) score += 15;       // 3–6pm danger zone
+  else if (hour >= 11 && hour <= 14) score += 5;
+  else score += 2;
+  // day of week (0–10 pts)
+  if (day === 5) score += 10; // Friday
+  else if (day === 4) score += 6; // Thursday
+  else score += 1;
+  // hotfix flag (0–10 pts)
+  score += isHotfix ? 10 : 0;
+  // test pass rate (0–5 pts)
+  score += Math.round((1 - testPassRate) * 5);
+  return Math.min(score, 100);
+}
+
+function getVerdict(score) {
+  if (score >= 70) return 'BLOCKED';
+  if (score >= 40) return 'CAUTION';
+  return 'SAFE';
+}
+
+// ─── Components ───────────────────────────────────────────────────────────
+function ScoreCircle({ score }) {
+  const color = score >= 70 ? '#F87171' : score >= 40 ? '#FBBF24' : '#34D399';
+  const pct = score / 100;
+  const r = 36, cx = 45, cy = 45;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ position: 'relative', width: 90, height: 90, flexShrink: 0 }}>
+      <svg width="90" height="90" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+      </svg>
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>{score}</span>
+        <span style={{ fontSize: '0.6rem', color: '#64748B' }}>/100</span>
+      </div>
+    </div>
+  );
+}
+
+function FactorBar({ label, value, color }) {
+  return (
+    <div className="factor-bar">
+      <div className="factor-label">
+        <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>{label}</span>
+        <span style={{ color, fontWeight: 700, fontSize: '0.75rem' }}>{Math.round(value * 100)}%</span>
+      </div>
+      <div className="factor-track">
+        <div className="factor-fill" style={{ width: `${value * 100}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function Toast({ msg, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return <div className="toast">✅ {msg}</div>;
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────
+function App() {
+  const [toast, setToast] = useState(null);
+
+  // Score demo state
+  const [demo, setDemo] = useState({
+    diffSize: 450,
+    failureRate: 0.3,
+    hour: 17,
+    day: 5,
+    isHotfix: false,
+    testPassRate: 0.85,
+  });
+
+  const score = calcScore(demo);
+  const verdict = getVerdict(score);
+
+  const factors = [
+    { label: 'recent_failure_rate', value: demo.failureRate, color: '#F87171' },
+    { label: 'diff_size (norm)', value: Math.min(demo.diffSize / 1000, 1), color: '#FBBF24' },
+    { label: 'time_of_day_risk', value: (demo.hour >= 15 && demo.hour <= 18) ? 0.9 : 0.3, color: '#4F8EF7' },
+    { label: 'test_pass_rate', value: 1 - demo.testPassRate, color: '#A78BFA' },
+  ];
+
+  const copyCode = useCallback((txt) => {
+    navigator.clipboard.writeText(txt).then(() => setToast('Copied to clipboard!'));
+  }, []);
+
+  const jenkinsStage = `stage('SafeShip Risk Check') {
+    steps {
+        script {
+            def res = sh(script: """curl -s -X POST http://YOUR-EC2-IP/score \\
+              -H 'Content-Type: application/json' \\
+              -d '{"tenant_id":"ce347a6873784a9b","api_key":"6832057ec6fe4346861b2e2c16dd443e","hour_of_day":\${new Date().hours},"day_of_week":\${new Date().day},"diff_size":\${env.GIT_DIFF_SIZE ?: 100},"recent_failure_rate":0.0}'""", returnStdout:true).trim()
+            def result = readJSON text: res
+            if (result.verdict == 'BLOCKED') error("SafeShip blocked: \${result.score}/100")
+            echo "SafeShip: \${result.score}/100 - \${result.verdict}"
+        }
+    }
+}`;
+
+  return (
+    <>
+      {/* NAV */}
+      <nav>
+        <div className="nav-logo">🚢 SafeShip</div>
+        <div className="nav-links">
+          <a href="#how">How it Works</a>
+          <a href="#features">Features</a>
+          <a href="#arch">Architecture</a>
+          <a href="#start" className="nav-cta">Get Started</a>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <div className="hero">
+        <div className="hero-badge">
+          <span className="dot"></span>
+          ML-Powered Deploy Risk Scoring
+        </div>
+        <h1>Stop <span>3am pages</span><br/>before they start</h1>
+        <p className="hero-sub">
+          SafeShip scores every deploy for risk using a Random Forest model trained on your team's build history.
+          Before it hits production, not after.
+        </p>
+        <div className="hero-actions">
+          <button className="btn-primary" onClick={() => document.getElementById('start').scrollIntoView({ behavior: 'smooth' })}>
+            Get Started Free
+          </button>
+          <button className="btn-secondary" onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}>
+            Try Live Demo ↓
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="stats-bar">
+          {[
+            { value: '85.1%', label: 'Model Precision' },
+            { value: '0.934', label: 'AUC-ROC Score' },
+            { value: '<200ms', label: 'Score Latency' },
+            { value: '$0', label: 'Monthly Infra Cost' },
+          ].map(s => (
+            <div className="stat-item" key={s.label}>
+              <div className="stat-value">{s.value}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PROBLEM */}
+      <section>
+        <div className="section-tag">The Problem</div>
+        <h2>Deploy risk is invisible<br/>until it isn't</h2>
+        <p className="section-desc">
+          Engineering teams make deploy decisions based on gut feeling. But every decision contains
+          measurable signals that predict failure.
+        </p>
+        <div className="compare-grid">
+          <div className="compare-card danger">
+            <div className="compare-title danger">❌ Before SafeShip</div>
+            <ul className="compare-list">
+              {['Deploy goes out Friday 5pm', 'Tests passed, feels safe', 'Production down Saturday 3am', '4 hours of incident response', 'Root cause: Friday + large diff + failures'].map(t => (
+                <li key={t}><span className="icon">✗</span>{t}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="compare-card safe">
+            <div className="compare-title safe">✅ With SafeShip</div>
+            <ul className="compare-list">
+              {['Deploy scores 94/100 → BLOCKED', 'Top reasons shown instantly', 'Team delays to Monday 10am', 'Deploy scores 18/100 → SAFE', 'Ships cleanly, no incident'].map(t => (
+                <li key={t}><span className="icon">✓</span>{t}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* LIVE DEMO */}
+      <section id="demo">
+        <div className="section-tag">Live Demo</div>
+        <h2>Try the Scorer</h2>
+        <p className="section-desc">Adjust the inputs and watch the risk score update in real-time.</p>
+        <div className="score-demo">
+          <div className="score-demo-title">🎯 Configure your deploy</div>
+          <div className="score-inputs">
+            <div className="input-group">
+              <label>DIFF SIZE (lines)</label>
+              <input type="number" value={demo.diffSize}
+                onChange={e => setDemo(d => ({ ...d, diffSize: +e.target.value }))} min={0} max={5000} />
+            </div>
+            <div className="input-group">
+              <label>RECENT FAILURE RATE</label>
+              <input type="number" value={demo.failureRate} step="0.1"
+                onChange={e => setDemo(d => ({ ...d, failureRate: Math.min(1, Math.max(0, +e.target.value)) }))} min={0} max={1} />
+            </div>
+            <div className="input-group">
+              <label>HOUR OF DAY (0–23)</label>
+              <input type="number" value={demo.hour}
+                onChange={e => setDemo(d => ({ ...d, hour: Math.min(23, Math.max(0, +e.target.value)) }))} min={0} max={23} />
+            </div>
+            <div className="input-group">
+              <label>DAY OF WEEK (0=Mon, 6=Sun)</label>
+              <input type="number" value={demo.day}
+                onChange={e => setDemo(d => ({ ...d, day: Math.min(6, Math.max(0, +e.target.value)) }))} min={0} max={6} />
+            </div>
+            <div className="input-group">
+              <label>TEST PASS RATE</label>
+              <input type="number" value={demo.testPassRate} step="0.05"
+                onChange={e => setDemo(d => ({ ...d, testPassRate: Math.min(1, Math.max(0, +e.target.value)) }))} min={0} max={1} />
+            </div>
+            <div className="input-group">
+              <label>IS HOTFIX</label>
+              <select value={demo.isHotfix ? 'yes' : 'no'}
+                onChange={e => setDemo(d => ({ ...d, isHotfix: e.target.value === 'yes' }))}>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+          </div>
+          <div className="score-result">
+            <ScoreCircle score={score} />
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <span className={`verdict-badge verdict-${verdict.toLowerCase()}`}>{verdict}</span>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '1rem' }}>
+                {verdict === 'BLOCKED' ? '🚫 This deploy would be blocked by SafeShip' :
+                  verdict === 'CAUTION' ? '⚠️ High risk — review before shipping' :
+                  '✅ Low risk — safe to deploy'}
+              </div>
+              <div className="top-factors">
+                <h4>TOP RISK FACTORS</h4>
+                {factors.map(f => <FactorBar key={f.label} {...f} />)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how">
+        <div className="section-tag">The ML Engine</div>
+        <h2>How the model works</h2>
+        <p className="section-desc">Battle-tested ML on your own deploy history.</p>
+        <div className="ml-grid">
+          {[
+            { icon: '🌲', title: 'Random Forest', desc: '100 decision trees, depth 8, balanced class weights. Works well on 80–5000 samples — exactly the range real teams produce.' },
+            { icon: '⚖️', title: 'SMOTE Balancing', desc: 'Most builds succeed. Without SMOTE, the model would just predict "safe" for everything. SMOTE forces it to learn risky patterns.' },
+            { icon: '🎯', title: '10 Features', desc: 'Diff size, failure rate, time of day, day of week, test pass rate, hotfix flag, deployer experience, days since deploy, and more.' },
+            { icon: '🔄', title: 'Nightly Retraining', desc: 'EC2 cron at 2am UTC. Trains per-tenant models when 80+ labelled builds exist. 5-check validation gate before any model swap.' },
+            { icon: '📊', title: 'Drift Detection', desc: 'Weekly KS-test across all 10 features. If your team\'s deploy patterns shift significantly, the model automatically retrains.' },
+            { icon: '🔒', title: 'Validation Gate', desc: '5 checks before any model swap: dataset size, precision ≥0.75, AUC ≥0.70, no regression vs old model, min risky ratio.' },
+          ].map(c => (
+            <div className="ml-card" key={c.title}>
+              <div className="ml-card-icon">{c.icon}</div>
+              <div className="ml-card-title">{c.title}</div>
+              <div className="ml-card-desc">{c.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES TABLE */}
+      <section id="features">
+        <div className="section-tag">Feature Engineering</div>
+        <h2>All 10 Scored Features</h2>
+        <p className="section-desc">Every feature is automatically extracted — no manual tagging required.</p>
+        <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border)' }}>
+          <table className="features-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Signal Weight</th>
+                <th>Extraction</th>
+                <th>Fallback</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: 'recent_failure_rate', weight: 'Very High', cls: 'very-high', ext: 'Jenkins API last 10 builds', fb: '0.0' },
+                { name: 'diff_size', weight: 'High', cls: 'high', ext: 'git diff --stat | parse lines', fb: 'files × 20' },
+                { name: 'test_pass_rate', weight: 'High', cls: 'high', ext: 'Jenkins test report API', fb: '1.0' },
+                { name: 'is_hotfix', weight: 'High', cls: 'high', ext: 'Branch name contains hotfix/fix', fb: '0' },
+                { name: 'hour_of_day', weight: 'Medium', cls: 'medium', ext: 'System time at trigger', fb: 'Never missing' },
+                { name: 'day_of_week', weight: 'Medium', cls: 'medium', ext: 'System time at trigger', fb: 'Never missing' },
+                { name: 'days_since_deploy', weight: 'Medium', cls: 'medium', ext: 'Jenkins last success timestamp', fb: '7.0' },
+                { name: 'build_time_delta', weight: 'Low', cls: 'low', ext: 'Current vs 14-day avg duration', fb: '0.0' },
+                { name: 'deployer_exp', weight: 'Low', cls: 'low', ext: 'Count in tenant S3 CSV', fb: '1' },
+                { name: 'file_count', weight: 'Medium', cls: 'medium', ext: 'git diff --name-only | wc -l', fb: '5' },
+              ].map(r => (
+                <tr key={r.name}>
+                  <td>{r.name}</td>
+                  <td><span className={`weight-badge weight-${r.cls}`}>{r.weight}</span></td>
+                  <td>{r.ext}</td>
+                  <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem' }}>{r.fb}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ARCHITECTURE */}
+      <section id="arch">
+        <div className="section-tag">Architecture</div>
+        <h2>Everything on AWS Free Tier</h2>
+        <p className="section-desc">Runs on $0/month. Self-hosted. Your data never leaves your infra.</p>
+        <div className="arch-grid">
+          {[
+            { icon: '🖥️', title: 'EC2 t2.micro', sub: 'Scoring API', desc: 'Flask + Gunicorn behind Nginx. Model loaded in memory, hot-reloaded every 5 min from S3. Ansible-provisioned.' },
+            { icon: '🪣', title: 'S3 (2 buckets)', sub: 'Storage', desc: 'Model files (.pkl) and per-tenant build CSVs. 90-day rolling window. Monthly archive. Free tier: 5 GB.' },
+            { icon: '⚡', title: 'DynamoDB', sub: 'Tenant Registry', desc: 'Single table, partition key: tenant_id. All tenant metadata, thresholds, model phase. Free tier: 25 GB.' },
+            { icon: '🔗', title: 'Jenkins + GitHub', sub: 'CI Pipeline', desc: 'GitHub webhook triggers Jenkins on every commit. SafeShip stage scores the build before deploy step runs.' },
+          ].map(c => (
+            <div className="arch-card" key={c.title}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{c.icon}</div>
+              <div className="arch-card-title">{c.title}</div>
+              <div className="arch-card-sub">{c.sub}</div>
+              <div className="arch-card-desc">{c.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline Flow */}
+        <div style={{ marginTop: '3rem' }}>
+          <div className="section-tag" style={{ marginBottom: '1rem' }}>CI/CD Flow</div>
+          <div className="pipeline">
+            {[
+              { icon: '📝', name: 'Git Push', label: 'trigger', cls: 'active' },
+              null,
+              { icon: '🔧', name: 'Build & Test', label: 'jenkins', cls: 'active' },
+              null,
+              { icon: '🚢', name: 'SafeShip Score', label: 'risk check', cls: 'active' },
+              null,
+              { icon: '🚫', name: 'BLOCKED', label: 'score ≥ 70', cls: 'blocked' },
+              null,
+              { icon: '✅', name: 'Deploy', label: 'score < 40', cls: 'safe' },
+            ].map((step, i) => step === null
+              ? <div key={i} className="pipe-arrow">→</div>
+              : <div key={i} className={`pipe-step ${step.cls}`}>
+                  <div className="pipe-step-icon">{step.icon}</div>
+                  <div className="pipe-step-name">{step.name}</div>
+                  <div className="pipe-step-label">{step.label}</div>
+                </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* JENKINS CODE */}
+      <section id="start">
+        <div className="section-tag">Integration</div>
+        <h2>Add to your Jenkinsfile</h2>
+        <p className="section-desc">One stage. Copy, paste, commit. SafeShip will score every build automatically.</p>
+        <div className="code-block">
+          <button className="code-copy" onClick={() => copyCode(jenkinsStage)}>Copy</button>
+          <pre>{jenkinsStage}</pre>
+        </div>
+        <div style={{ marginTop: '1rem', padding: '1rem 1.25rem', background: 'rgba(79,142,247,0.07)', border: '1px solid rgba(79,142,247,0.2)', borderRadius: '10px', fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.7 }}>
+          💡 Replace <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontFamily: 'JetBrains Mono, monospace' }}>YOUR-EC2-IP</code> with your SafeShip EC2 instance IP.
+          The <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontFamily: 'JetBrains Mono, monospace' }}>tenant_id</code> and <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontFamily: 'JetBrains Mono, monospace' }}>api_key</code> are provisioned during onboarding.
+        </div>
+      </section>
+
+      {/* CTA */}
+      <div className="cta-section">
+        <div className="section-tag" style={{ textAlign: 'center' }}>Get Started</div>
+        <h2>Start shipping safer today</h2>
+        <p>Free. Self-hosted. Your data stays in your infra.</p>
+        <div className="hero-actions" style={{ justifyContent: 'center' }}>
+          <button className="btn-primary">Get Started Free</button>
+          <button className="btn-secondary" onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}>Try Live Demo →</button>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <footer>
+        <strong>SafeShip</strong> — Built because 3am pages are avoidable. &nbsp;·&nbsp; Free & Open Source
+      </footer>
+
+      {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
