@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // ── SafeShip configuration ─────────────────────────────────────────
-        SAFESHIP_EC2_IP     = 'YOUR-EC2-IP'                     // Replace with your EC2 IP
+        SAFESHIP_EC2_IP     = '54.89.160.150'                     // Replace with your EC2 IP
         SAFESHIP_TENANT_ID  = '318997eaa6124b6d'
         SAFESHIP_API_KEY    = 'bcc6f5f5c2ce4b96971d9a2529620afa'
         SAFESHIP_THRESHOLD  = '70'                              // Block if score >= this
