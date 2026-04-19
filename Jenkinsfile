@@ -71,9 +71,9 @@ pipeline {
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo "🎯 SafeShip Score : ${result.score} / 100"
                     echo "📋 Verdict        : ${result.verdict}"
-                    if (result.reasons) {
-                        echo "⚠️  Top reasons    : ${result.reasons}"
-                    }
+                    // if (result.top_reasons) {
+                    //     echo "⚠️  Top reasons    : ${result.top_reasons}"
+                    // }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
                     // Store score for downstream stages
