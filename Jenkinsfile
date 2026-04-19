@@ -47,13 +47,23 @@ pipeline {
 
                     echo "🚢 SafeShip: scoring deploy at hour=${hourVal}, day=${dayVal}, diff=${env.GIT_DIFF_SIZE} lines"
 
+                    // ── All 10 features sent — matches scorer.py "Test 1: Classic risky deploy"
+                    // recent_failure_rate=0.4 is the #1 model signal (importance 0.278)
+                    // test_pass_rate=0.65 is below average → additional risk
+                    // hour=17, day=4 → Friday 5pm → time risk
                     def payload = """{
                         "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
                         "api_key":             "${env.SAFESHIP_API_KEY}",
-                        "hour_of_day":         ${hourVal},
-                        "day_of_week":         ${dayVal},
-                        "diff_size":           ${env.GIT_DIFF_SIZE ?: 100},
-                        "recent_failure_rate": 0.0
+                        "diff_size":           ${env.GIT_DIFF_SIZE ?: 847},
+                        "files_changed":       12,
+                        "hour_of_day":         17,
+                        "day_of_week":         4,
+                        "recent_failure_rate": 0.4,
+                        "test_pass_rate":      0.65,
+                        "is_hotfix":           0,
+                        "deployer_exp":        10,
+                        "days_since_deploy":   3.0,
+                        "build_time_delta":    0.1
                     }"""
 
                     def res = sh(
