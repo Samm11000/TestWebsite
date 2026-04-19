@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         // ── SafeShip configuration ─────────────────────────────────────────
-        SAFESHIP_EC2_IP     = '54.89.160.150'                     // Replace with your EC2 IP
+        SAFESHIP_EC2_IP     = '54.89.160.150'
         SAFESHIP_TENANT_ID  = '318997eaa6124b6d'
         SAFESHIP_API_KEY    = 'bcc6f5f5c2ce4b96971d9a2529620afa'
-        SAFESHIP_THRESHOLD  = '70'                              // Block if score >= this
+        SAFESHIP_THRESHOLD  = '70'
     }
 
     stages {
@@ -23,14 +23,13 @@ pipeline {
         stage('Compute Diff Size') {
             steps {
                 script {
-                    // Count changed lines vs. previous commit
                     def diffStat = sh(
                         script: "git diff --stat HEAD~1 HEAD 2>/dev/null | tail -1 || echo '0 files changed, 0 insertions(+), 0 deletions(-)'",
                         returnStdout: true
                     ).trim()
 
-                    def added    = (diffStat =~ /(\d+) insertion/)  ? (diffStat =~ /(\d+) insertion/)[0][1].toInteger()  : 0
-                    def deleted  = (diffStat =~ /(\d+) deletion/)   ? (diffStat =~ /(\d+) deletion/)[0][1].toInteger()   : 0
+                    def added   = (diffStat =~ /(\d+) insertion/)  ? (diffStat =~ /(\d+) insertion/)[0][1].toInteger()  : 0
+                    def deleted = (diffStat =~ /(\d+) deletion/)   ? (diffStat =~ /(\d+) deletion/)[0][1].toInteger()   : 0
                     env.GIT_DIFF_SIZE = (added + deleted).toString()
 
                     echo "📊 Diff size: +${added} / -${deleted} = ${env.GIT_DIFF_SIZE} lines total"
@@ -71,17 +70,12 @@ pipeline {
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo "🎯 SafeShip Score : ${result.score} / 100"
                     echo "📋 Verdict        : ${result.verdict}"
-                    // if (result.top_reasons) {
-                    //     echo "⚠️  Top reasons    : ${result.top_reasons}"
-                    // }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
                     // Store score for downstream stages
-                    // env.SAFESHIP_SCORE   = result.score.toString()
-                    // env.SAFESHIP_VERDICT = result.verdict
                     env.SAFESHIP_SCORE   = result.score.toString()
-env.SAFESHIP_VERDICT = result.verdict
-env.DG_BUILD_ID      = result.build_id ?: ""
+                    env.SAFESHIP_VERDICT = result.verdict
+                    env.DG_BUILD_ID      = result.build_id ?: ""
 
                     if (result.verdict == 'BLOCKED') {
                         error("🚫 SafeShip BLOCKED this deploy (score ${result.score}/100). Fix the risk factors and retry.")
@@ -102,7 +96,6 @@ env.DG_BUILD_ID      = result.build_id ?: ""
                 echo "🔨 Running build steps..."
                 // Add your real build commands here, for example:
                 //   sh 'npm ci && npm run build'
-                //   sh 'mvn clean package -DskipTests'
                 sh 'echo "Build complete ✅"'
             }
         }
@@ -113,7 +106,6 @@ env.DG_BUILD_ID      = result.build_id ?: ""
                 echo "🧪 Running test suite..."
                 // Add your real test commands here, for example:
                 //   sh 'npm test -- --watchAll=false'
-                //   sh 'mvn test'
                 sh 'echo "Tests passed ✅"'
             }
         }
@@ -125,47 +117,48 @@ env.DG_BUILD_ID      = result.build_id ?: ""
             }
             steps {
                 echo "🚀 Deploying... SafeShip score was ${env.SAFESHIP_SCORE}/100"
-                // Add your real deploy commands here
                 sh 'echo "Deployed successfully ✅"'
             }
         }
-    }
-post {
-    success {
-        echo "✅ Pipeline PASSED — SafeShip score: ${env.SAFESHIP_SCORE ?: 'N/A'}/100"
-    }
 
-    failure {
-        echo "❌ Pipeline FAILED — SafeShip verdict: ${env.SAFESHIP_VERDICT ?: 'N/A'}"
-    }
+    } // end stages
 
-    always {
-        script {
-            echo "Pipeline finished. Branch: ${env.GIT_BRANCH} Commit: ${env.GIT_COMMIT?.take(7)}"
+    // ─── Post Notifications ──────────────────────────────────────────────────
+    post {
+        success {
+            echo "✅ Pipeline PASSED — SafeShip score: ${env.SAFESHIP_SCORE ?: 'N/A'}/100"
+        }
 
-            if (env.DG_BUILD_ID?.trim()) {
+        failure {
+            echo "❌ Pipeline FAILED — SafeShip verdict: ${env.SAFESHIP_VERDICT ?: 'N/A'}"
+        }
 
-                def finalLabel = (currentBuild.currentResult == 'SUCCESS') ? 0 : 1
-                def sourceTxt  = (finalLabel == 0) ? "safe" : "failure"
+        always {
+            script {
+                echo "Pipeline finished. Branch: ${env.GIT_BRANCH} Commit: ${env.GIT_COMMIT?.take(7)}"
 
-                def logPayload = """{
-                    "tenant_id":"${env.SAFESHIP_TENANT_ID}",
-                    "api_key":"${env.SAFESHIP_API_KEY}",
-                    "build_id":"${env.DG_BUILD_ID}",
-                    "label":${finalLabel},
-                    "label_source":"${sourceTxt}"
-                }"""
+                if (env.DG_BUILD_ID?.trim()) {
+                    def finalLabel = (currentBuild.currentResult == 'SUCCESS') ? 0 : 1
+                    def sourceTxt  = (finalLabel == 0) ? "safe" : "failure"
 
-                echo "📡 Sending outcome to /log for ${env.DG_BUILD_ID}"
+                    def logPayload = """{
+                        "tenant_id":"${env.SAFESHIP_TENANT_ID}",
+                        "api_key":"${env.SAFESHIP_API_KEY}",
+                        "build_id":"${env.DG_BUILD_ID}",
+                        "label":${finalLabel},
+                        "label_source":"${sourceTxt}"
+                    }"""
 
-                sh """
-                curl -s -X POST http://${env.SAFESHIP_EC2_IP}/log \
-                  -H 'Content-Type: application/json' \
-                  -d '${logPayload}'
-                """
-            } else {
-                echo "⚠️ No build_id found. Skipping /log"
+                    echo "📡 Sending outcome to /log for ${env.DG_BUILD_ID}"
+
+                    sh """curl -s -X POST http://${env.SAFESHIP_EC2_IP}/log \\
+                        -H 'Content-Type: application/json' \\
+                        -d '${logPayload}'"""
+                } else {
+                    echo "⚠️ No build_id found. Skipping /log"
+                }
             }
         }
     }
-}
+
+} // end pipeline
