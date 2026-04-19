@@ -77,8 +77,11 @@ pipeline {
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
                     // Store score for downstream stages
+                    // env.SAFESHIP_SCORE   = result.score.toString()
+                    // env.SAFESHIP_VERDICT = result.verdict
                     env.SAFESHIP_SCORE   = result.score.toString()
-                    env.SAFESHIP_VERDICT = result.verdict
+env.SAFESHIP_VERDICT = result.verdict
+env.DG_BUILD_ID      = result.build_id ?: ""
 
                     if (result.verdict == 'BLOCKED') {
                         error("🚫 SafeShip BLOCKED this deploy (score ${result.score}/100). Fix the risk factors and retry.")
@@ -127,17 +130,42 @@ pipeline {
             }
         }
     }
+post {
+    success {
+        echo "✅ Pipeline PASSED — SafeShip score: ${env.SAFESHIP_SCORE ?: 'N/A'}/100"
+    }
 
-    // ─── Post Notifications ──────────────────────────────────────────────────
-    post {
-        success {
-            echo "✅ Pipeline PASSED — SafeShip score: ${env.SAFESHIP_SCORE ?: 'N/A'}/100"
-        }
-        failure {
-            echo "❌ Pipeline FAILED — SafeShip verdict: ${env.SAFESHIP_VERDICT ?: 'N/A'}"
-        }
-        always {
+    failure {
+        echo "❌ Pipeline FAILED — SafeShip verdict: ${env.SAFESHIP_VERDICT ?: 'N/A'}"
+    }
+
+    always {
+        script {
             echo "Pipeline finished. Branch: ${env.GIT_BRANCH} Commit: ${env.GIT_COMMIT?.take(7)}"
+
+            if (env.DG_BUILD_ID?.trim()) {
+
+                def finalLabel = (currentBuild.currentResult == 'SUCCESS') ? 0 : 1
+                def sourceTxt  = (finalLabel == 0) ? "safe" : "failure"
+
+                def logPayload = """{
+                    "tenant_id":"${env.SAFESHIP_TENANT_ID}",
+                    "api_key":"${env.SAFESHIP_API_KEY}",
+                    "build_id":"${env.DG_BUILD_ID}",
+                    "label":${finalLabel},
+                    "label_source":"${sourceTxt}"
+                }"""
+
+                echo "📡 Sending outcome to /log for ${env.DG_BUILD_ID}"
+
+                sh """
+                curl -s -X POST http://${env.SAFESHIP_EC2_IP}/log \
+                  -H 'Content-Type: application/json' \
+                  -d '${logPayload}'
+                """
+            } else {
+                echo "⚠️ No build_id found. Skipping /log"
+            }
         }
     }
 }
