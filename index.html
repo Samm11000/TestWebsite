@@ -1,670 +1,194 @@
 <!DOCTYPE html>
-<!--
-  ╔══════════════════════════════════════════════════════════════════════════════╗
-  ║  ⚠️  RISKY DEPLOY TEST — LARGE DIFF INTENTIONAL                             ║
-  ║  This commit intentionally replaces the entire frontend to produce a         ║
-  ║  large diff_size, which SafeShip should score HIGH / BLOCKED.                ║
-  ║  Previous code is preserved in git history.                                  ║
-  ╚══════════════════════════════════════════════════════════════════════════════╝
--->
 <html lang="en">
-<!-- BeforeTesting Lambda Retrain  -->
-
 <head>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafeShip — Deploy Risk Dashboard</title>
-  <meta name="description" content="SafeShip live deploy risk dashboard. See your pipeline risk score in real-time." />
+  <meta name="description" content="SafeShip deploy risk dashboard. Clean, safe deploy with healthy score." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    /* ── Reset ─────────────────────────────────────────────── */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
-    html {
-      scroll-behavior: smooth;
+    :root {
+      --green:  #10B981;
+      --blue:   #3B82F6;
+      --purple: #8B5CF6;
+      --yellow: #F59E0B;
+      --red:    #EF4444;
+      --bg0:    #020409;
+      --bg1:    #0B1120;
+      --bg2:    #111827;
+      --border: rgba(255,255,255,0.07);
+      --muted:  #6B7280;
+      --mono:   'JetBrains Mono', monospace;
     }
 
     body {
       font-family: 'Inter', sans-serif;
-      background: #020409;
+      background: var(--bg0);
       color: #E2E8F0;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* ── Design tokens ─────────────────────────────────────── */
-    :root {
-      --red: #EF4444;
-      --yellow: #F59E0B;
-      --green: #10B981;
-      --blue: #3B82F6;
-      --purple: #8B5CF6;
-      --bg0: #020409;
-      --bg1: #0B1120;
-      --bg2: #111827;
-      --border: rgba(255, 255, 255, 0.06);
-      --muted: #6B7280;
-      --mono: 'JetBrains Mono', monospace;
-    }
-
-    /* ── Grid scan-line overlay ────────────────────────────── */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(16,185,129,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.025) 1px, transparent 1px);
       background-size: 40px 40px;
       pointer-events: none;
       z-index: 0;
     }
 
-    /* ── Header ────────────────────────────────────────────── */
+    /* ── Header ── */
     header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 1rem 2rem;
-      background: rgba(2, 4, 9, 0.9);
-      backdrop-filter: blur(12px);
+      background: rgba(2,4,9,0.92);
+      backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
     }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1.1rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
+    .logo { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg,#10B981,#3B82F6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .header-badge {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; font-family: var(--mono); color: var(--green);
+    }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+    @keyframes pulse {
+      0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(16,185,129,0.5); }
+      50%      { opacity:0.6; box-shadow:0 0 0 6px rgba(16,185,129,0); }
     }
 
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
+    /* ── Layout ── */
+    .page { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
     }
+    .a0 { animation: fadeUp 0.5s ease both; }
+    .a1 { animation: fadeUp 0.5s 0.1s ease both; }
+    .a2 { animation: fadeUp 0.5s 0.2s ease both; }
+    .a3 { animation: fadeUp 0.5s 0.3s ease both; }
 
-    .header-status {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-      font-family: var(--mono);
+    /* ── Hero card ── */
+    .hero {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+      background: var(--bg1); border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 20px; padding: 2.5rem; margin-bottom: 2rem;
+      position: relative; overflow: hidden;
     }
-
-    .live-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: livePulse 1.5s infinite;
+    @media(max-width:660px) { .hero { grid-template-columns:1fr; } }
+    .hero::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, #10B981, #3B82F6, #8B5CF6);
     }
+    .hero-left h1 { font-size: clamp(1.4rem,3.5vw,2.2rem); font-weight: 900; letter-spacing: -1px; line-height: 1.15; margin-bottom: 0.75rem; }
+    .hero-left h1 span { color: var(--green); }
+    .hero-left p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.25rem; }
 
-    @keyframes livePulse {
-
-      0%,
-      100% {
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
-      }
-
-      50% {
-        opacity: 0.6;
-        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-      }
+    .meta-box {
+      background: var(--bg0); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem; font-family: var(--mono); font-size: 0.78rem;
     }
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+    .meta-row:last-child { margin-bottom: 0; }
+    .meta-key { color: var(--muted); }
+    .safe-val { color: var(--green); }
+    .ok-val   { color: var(--blue); }
 
-    /* ── Layout ────────────────────────────────────────────── */
-    .page {
-      position: relative;
-      z-index: 1;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-
-    /* ── Hero risk meter ───────────────────────────────────── */
-    .risk-hero {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      margin-bottom: 2rem;
-      padding: 2.5rem;
-      background: var(--bg1);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .risk-hero::before {
-      content: 'RISKY DEPLOY SIMULATION';
-      position: absolute;
-      top: 1rem;
-      right: 1.5rem;
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--red);
-      letter-spacing: 2px;
-      opacity: 0.7;
-    }
-
-    @media (max-width: 700px) {
-      .risk-hero {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .hero-left h1 {
-      font-size: clamp(1.5rem, 4vw, 2.5rem);
-      font-weight: 900;
-      letter-spacing: -1px;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-    }
-
-    .hero-left h1 span {
-      color: var(--red);
-    }
-
-    .hero-left p {
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.7;
-      margin-bottom: 1.5rem;
-    }
-
-    .commit-info {
-      background: var(--bg0);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-    }
-
-    .commit-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.4rem;
-    }
-
-    .commit-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .commit-key {
-      color: var(--muted);
-    }
-
-    .commit-val {
-      color: var(--blue);
-    }
-
-    .commit-val.danger {
-      color: var(--red);
-    }
-
-    .commit-val.warn {
-      color: var(--yellow);
-    }
-
-    .commit-val.safe {
-      color: var(--green);
-    }
-
-    /* ── Gauge ─────────────────────────────────────────────── */
-    .gauge-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .gauge-svg {
-      width: 200px;
-      height: 120px;
-    }
-
-    .gauge-score-label {
-      font-size: 3rem;
-      font-weight: 900;
-      letter-spacing: -2px;
-      text-align: center;
-      margin-top: 0.5rem;
-      line-height: 1;
-    }
-
+    /* ── Gauge ── */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .gauge-svg  { width: 200px; height: 120px; }
+    .gauge-score { font-size: 3rem; font-weight: 900; letter-spacing: -2px; text-align: center; margin-top: 0.5rem; color: var(--green); }
     .gauge-verdict {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-align: center;
-      margin-top: 0.25rem;
-      padding: 0.3rem 1rem;
-      border-radius: 100px;
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--red);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      font-size: 0.73rem; font-weight: 700; letter-spacing: 3px; text-align: center;
+      margin-top: 0.3rem; padding: 0.3rem 1rem; border-radius: 100px;
+      background: rgba(16,185,129,0.12); color: var(--green);
+      border: 1px solid rgba(16,185,129,0.3);
     }
+    .gauge-sub { font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
 
-    .gauge-sub {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-align: center;
-      margin-top: 0.5rem;
-    }
-
-    /* ── Feature breakdown ─────────────────────────────────── */
+    /* ── Section label ── */
     .section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      color: var(--blue);
-      margin-bottom: 1rem;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--blue); margin-bottom: 1rem;
     }
 
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
+    /* ── Feature cards ── */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(185px,1fr)); gap: 1rem; margin-bottom: 2rem; }
     .feature-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem;
-      transition: border-color 0.2s;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem; transition: border-color 0.2s;
     }
+    .feature-card:hover { border-color: rgba(255,255,255,0.12); }
+    .feature-card.ok { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.03); }
+    .fc-name  { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .fc-value { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; color: var(--green); margin-bottom: 0.25rem; }
+    .fc-desc  { font-size: 0.7rem; color: var(--muted); }
+    .bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
+    .bar-fill  { height: 100%; border-radius: 2px; background: var(--green); }
 
-    .feature-card:hover {
-      border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    .feature-card.danger {
-      border-color: rgba(239, 68, 68, 0.25);
-      background: rgba(239, 68, 68, 0.04);
-    }
-
-    .feature-card.warn {
-      border-color: rgba(245, 158, 11, 0.25);
-      background: rgba(245, 158, 11, 0.04);
-    }
-
-    .feature-card.ok {
-      border-color: rgba(16, 185, 129, 0.25);
-      background: rgba(16, 185, 129, 0.04);
-    }
-
-    .feature-name {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-value {
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      line-height: 1;
-      margin-bottom: 0.25rem;
-    }
-
-    .feature-value.danger {
-      color: var(--red);
-    }
-
-    .feature-value.warn {
-      color: var(--yellow);
-    }
-
-    .feature-value.ok {
-      color: var(--green);
-    }
-
-    .feature-bar-track {
-      height: 4px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 0.5rem;
-    }
-
-    .feature-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 1s ease;
-    }
-
-    /* ── Reasons panel ─────────────────────────────────────── */
+    /* ── Reasons panel ── */
     .reasons-panel {
-      background: var(--bg1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 16px;
-      padding: 1.75rem;
-      margin-bottom: 2rem;
+      background: var(--bg1); border: 1px solid rgba(16,185,129,0.18);
+      border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
     }
-
     .reason-row {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.875rem 0;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.8rem 0; border-bottom: 1px solid var(--border);
+    }
+    .reason-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .r-rank { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); width: 20px; flex-shrink: 0; }
+    .r-feat { font-family: var(--mono); font-size: 0.82rem; flex: 1; }
+    .r-bar-wrap { width: 80px; }
+    .r-bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .r-bar-fill  { height: 100%; background: var(--green); border-radius: 3px; }
+    .r-val { font-size: 0.82rem; color: var(--muted); min-width: 120px; text-align: right; }
+    .r-imp { font-weight: 700; font-size: 0.82rem; min-width: 48px; text-align: right; color: var(--green); }
+
+    /* ── Timeline ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
+    .ti {
+      display: flex; align-items: flex-start; gap: 1.25rem;
+      padding: 1.2rem 0; border-bottom: 1px solid var(--border);
+    }
+    .ti:last-child { border-bottom: none; }
+    .ti-dot {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-top: 0.1rem;
+    }
+    .ti-dot.pass { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
+    .ti-body { flex: 1; }
+    .ti-title { font-weight: 700; font-size: 0.93rem; margin-bottom: 0.2rem; }
+    .ti-desc  { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .ti-time  { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+    .ti-badge {
+      padding: 0.25rem 0.75rem; border-radius: 100px;
+      font-size: 0.7rem; font-weight: 700; align-self: flex-start;
+      margin-top: 0.25rem; white-space: nowrap;
+      background: rgba(16,185,129,0.1); color: var(--green);
+      border: 1px solid rgba(16,185,129,0.25);
     }
 
-    .reason-row:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .reason-rank {
-      font-size: 0.7rem;
-      color: var(--muted);
-      font-family: var(--mono);
-      width: 20px;
-      flex-shrink: 0;
-    }
-
-    .reason-feat {
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      color: var(--text);
-      flex: 1;
-    }
-
-    .reason-val {
-      font-size: 0.85rem;
-      color: var(--muted);
-      min-width: 100px;
-      text-align: right;
-    }
-
-    .reason-imp {
-      font-weight: 700;
-      font-size: 0.85rem;
-      min-width: 48px;
-      text-align: right;
-    }
-
-    .reason-imp.high {
-      color: var(--red);
-    }
-
-    .reason-imp.medium {
-      color: var(--yellow);
-    }
-
-    .reason-imp.low {
-      color: var(--muted);
-    }
-
-    .reason-bar-wrap {
-      width: 80px;
-    }
-
-    .reason-bar-track {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .reason-bar-fill {
-      height: 100%;
-      background: var(--red);
-      border-radius: 3px;
-    }
-
-    /* ── Dataset peek ─────────────────────────────────────────── */
-    .dataset-panel {
-      background: var(--bg1);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.75rem;
-      margin-bottom: 2rem;
-      overflow-x: auto;
-    }
-
-    .ds-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-    }
-
-    .ds-table th {
-      text-align: left;
-      padding: 0.5rem 0.75rem;
-      background: var(--bg2);
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    .ds-table td {
-      padding: 0.45rem 0.75rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-      color: #94A3B8;
-      white-space: nowrap;
-    }
-
-    .ds-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .ds-table td.lbl-risky {
-      color: var(--red);
-      font-weight: 700;
-    }
-
-    .ds-table td.lbl-safe {
-      color: var(--green);
-    }
-
-    .ds-badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.65rem;
-      font-weight: 700;
-    }
-
-    .ds-badge.risky {
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--red);
-    }
-
-    .ds-badge.safe {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--green);
-    }
-
-    /* ── Pipeline timeline ─────────────────────────────────── */
-    .timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-bottom: 2rem;
-    }
-
-    .timeline-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 1.25rem;
-      padding: 1.25rem 0;
-      border-bottom: 1px solid var(--border);
-      position: relative;
-    }
-
-    .timeline-item:last-child {
-      border-bottom: none;
-    }
-
-    .timeline-dot {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      margin-top: 0.1rem;
-    }
-
-    .timeline-dot.pass {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .timeline-dot.fail {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .timeline-dot.warn {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .timeline-dot.skip {
-      background: rgba(107, 114, 128, 0.15);
-      border: 1px solid rgba(107, 114, 128, 0.2);
-    }
-
-    .timeline-body {
-      flex: 1;
-    }
-
-    .timeline-title {
-      font-weight: 700;
-      font-size: 0.95rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .timeline-desc {
-      font-size: 0.82rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .timeline-time {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 0.25rem;
-    }
-
-    .timeline-badge {
-      padding: 0.25rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      align-self: flex-start;
-      margin-top: 0.25rem;
-      white-space: nowrap;
-    }
-
-    .timeline-badge.pass {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--green);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-
-    .timeline-badge.fail {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--red);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-    }
-
-    .timeline-badge.warn {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--yellow);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-    }
-
-    .timeline-badge.skip {
-      background: rgba(107, 114, 128, 0.1);
-      color: var(--muted);
-      border: 1px solid rgba(107, 114, 128, 0.2);
-    }
-
-    /* ── Footer ────────────────────────────────────────────── */
+    /* ── Footer ── */
     footer {
-      text-align: center;
-      padding: 2rem;
+      text-align: center; padding: 2rem;
       border-top: 1px solid var(--border);
-      font-size: 0.8rem;
-      color: var(--muted);
+      font-size: 0.78rem; color: var(--muted);
     }
-
-    footer code {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: #4B5563;
-    }
-
-    /* ── Animations ────────────────────────────────────────── */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .animate {
-      animation: fadeIn 0.5s ease both;
-    }
-
-    .delay-1 {
-      animation-delay: 0.1s;
-    }
-
-    .delay-2 {
-      animation-delay: 0.2s;
-    }
-
-    .delay-3 {
-      animation-delay: 0.3s;
-    }
-
-    .delay-4 {
-      animation-delay: 0.4s;
-    }
+    footer code { font-family: var(--mono); font-size: 0.73rem; color: #4B5563; }
   </style>
 </head>
-
 <body>
 
   <header>
@@ -672,431 +196,217 @@
       <div class="logo-icon">🚢</div>
       SafeShip
     </div>
-    <div class="header-status">
+    <div class="header-badge">
       <div class="live-dot"></div>
-      RISKY DEPLOY TEST MODE
+      SAFE DEPLOY · LIVE
     </div>
   </header>
 
   <div class="page">
 
-    <!-- ─── HERO RISK METER ─────────────────────────────────────── -->
-    <div class="risk-hero animate">
+    <!-- Hero -->
+    <div class="hero a0">
       <div class="hero-left">
-        <h1>This commit is<br /><span>intentionally risky.</span></h1>
+        <h1>This deploy is<br /><span>healthy &amp; safe.</span></h1>
         <p>
-          This page was deployed as a SafeShip validation test.
-          The diff is deliberately large to push <code>diff_size</code> above 500 lines —
-          a key signal the Random Forest flags as high risk.
+          Small, focused commit — minimal diff, clean tests, low failure rate.
+          SafeShip scores this as <strong style="color:var(--green)">SAFE</strong>
+          and the pipeline proceeds automatically.
         </p>
-        <div class="commit-info">
-          <div class="commit-row">
-            <span class="commit-key">diff_size</span>
-            <span class="commit-val danger">~600+ lines ↑↑</span>
-          </div>
-          <div class="commit-row">
-            <span class="commit-key">hour_of_day</span>
-            <span class="commit-val warn" id="liveHour">computing…</span>
-          </div>
-          <div class="commit-row">
-            <span class="commit-key">day_of_week</span>
-            <span class="commit-val warn" id="liveDay">computing…</span>
-          </div>
-          <div class="commit-row">
-            <span class="commit-key">is_hotfix</span>
-            <span class="commit-val safe">0</span>
-          </div>
-          <div class="commit-row">
-            <span class="commit-key">recent_failure_rate</span>
-            <span class="commit-val safe">0.0 (no past failures)</span>
-          </div>
-          <div class="commit-row">
-            <span class="commit-key">expected_verdict</span>
-            <span class="commit-val danger">BLOCKED / WARNING</span>
-          </div>
+        <div class="meta-box">
+          <div class="meta-row"><span class="meta-key">diff_size</span>       <span class="safe-val" id="liveDiff">~small</span></div>
+          <div class="meta-row"><span class="meta-key">files_changed</span>   <span class="safe-val">1</span></div>
+          <div class="meta-row"><span class="meta-key">hour_of_day</span>     <span class="ok-val" id="liveHour">—</span></div>
+          <div class="meta-row"><span class="meta-key">day_of_week</span>     <span class="ok-val" id="liveDay">—</span></div>
+          <div class="meta-row"><span class="meta-key">recent_failure_rate</span><span class="safe-val">0.0</span></div>
+          <div class="meta-row"><span class="meta-key">test_pass_rate</span>  <span class="safe-val">1.0</span></div>
+          <div class="meta-row"><span class="meta-key">expected_verdict</span><span class="safe-val">✅ SAFE</span></div>
         </div>
       </div>
       <div class="gauge-wrap">
         <svg class="gauge-svg" viewBox="0 0 200 120">
-          <!-- Track arc -->
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"
-            stroke-linecap="round" />
-          <!-- Danger fill — large diff pushes ~65+ score -->
-          <path id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#EF4444" stroke-width="14"
-            stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="88"
-            style="transition: stroke-dashoffset 1.5s ease;" />
-          <!-- Threshold marker at 70 -->
-          <line x1="100" y1="20" x2="100" y2="36" stroke="rgba(245,158,11,0.8)" stroke-width="2" />
-          <text x="100" y="16" fill="#F59E0B" font-size="9" text-anchor="middle"
-            font-family="'JetBrains Mono',monospace">70</text>
-          <text x="18" y="116" fill="#10B981" font-size="9" font-family="'JetBrains Mono',monospace">SAFE</text>
+          <!-- track -->
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14" stroke-linecap="round"/>
+          <!-- fill — score ~22 → dashoffset ~195 (low risk) -->
+          <path id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#10B981" stroke-width="14"
+            stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="196"
+            style="transition:stroke-dashoffset 1.5s ease;" />
+          <!-- threshold marker at 70 -->
+          <line x1="100" y1="20" x2="100" y2="36" stroke="rgba(245,158,11,0.6)" stroke-width="2"/>
+          <text x="100" y="16" fill="#F59E0B" font-size="9" text-anchor="middle" font-family="'JetBrains Mono',monospace">70</text>
+          <text x="18"  y="116" fill="#10B981" font-size="9" font-family="'JetBrains Mono',monospace">SAFE</text>
           <text x="150" y="116" fill="#EF4444" font-size="9" font-family="'JetBrains Mono',monospace">BLOCKED</text>
         </svg>
-        <div class="gauge-score-label" style="color:#EF4444" id="gaugeScore">65</div>
-        <div class="gauge-verdict" id="gaugeVerdict">WARNING → BLOCKED</div>
-        <div class="gauge-sub">Driven by large diff_size</div>
+        <div class="gauge-score" id="gaugeScore">22</div>
+        <div class="gauge-verdict">✅ SAFE — DEPLOY APPROVED</div>
+        <div class="gauge-sub">Well below the 70-point block threshold</div>
       </div>
     </div>
 
-    <!-- ─── FEATURE CARDS ───────────────────────────────────────── -->
-    <div class="section-label animate delay-1">Feature Signal Breakdown</div>
-    <div class="feature-grid animate delay-1">
-      <div class="feature-card danger">
-        <div class="feature-name">diff_size</div>
-        <div class="feature-value danger">600+</div>
-        <div style="font-size:0.72rem;color:#6B7280">lines changed — <strong style="color:#EF4444">Very High</strong>
-        </div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:95%;background:#EF4444;"></div>
-        </div>
-      </div>
-      <div class="feature-card danger">
-        <div class="feature-name">files_changed</div>
-        <div class="feature-value danger" id="fcVal">1</div>
-        <div style="font-size:0.72rem;color:#6B7280">full file replacement</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:30%;background:#F59E0B;"></div>
-        </div>
-      </div>
-      <div class="feature-card warn" id="hourCard">
-        <div class="feature-name">hour_of_day</div>
-        <div class="feature-value warn" id="hvVal">--</div>
-        <div style="font-size:0.72rem;color:#6B7280" id="hourLabel">reading…</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" id="hourBar" style="width:50%;background:#F59E0B;"></div>
-        </div>
-      </div>
-      <div class="feature-card warn" id="dayCard">
-        <div class="feature-name">day_of_week</div>
-        <div class="feature-value warn" id="dvVal">--</div>
-        <div style="font-size:0.72rem;color:#6B7280" id="dayLabel">reading…</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" id="dayBar" style="width:40%;background:#F59E0B;"></div>
-        </div>
-      </div>
+    <!-- Feature cards -->
+    <div class="section-label a1">Feature Signal Breakdown</div>
+    <div class="feature-grid a1">
+
       <div class="feature-card ok">
-        <div class="feature-name">recent_failure_rate</div>
-        <div class="feature-value ok">0.0</div>
-        <div style="font-size:0.72rem;color:#6B7280">0 of last 10 builds failed</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:0%;background:#10B981;"></div>
-        </div>
+        <div class="fc-name">diff_size</div>
+        <div class="fc-value" id="fcDiff">~small</div>
+        <div class="fc-desc">lines changed — <strong style="color:var(--green)">Low</strong></div>
+        <div class="bar-track"><div class="bar-fill" id="diffBar" style="width:8%"></div></div>
       </div>
+
       <div class="feature-card ok">
-        <div class="feature-name">test_pass_rate</div>
-        <div class="feature-value ok">1.0</div>
-        <div style="font-size:0.72rem;color:#6B7280">all tests passing</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:100%;background:#10B981;"></div>
-        </div>
+        <div class="fc-name">files_changed</div>
+        <div class="fc-value">1</div>
+        <div class="fc-desc">single targeted file</div>
+        <div class="bar-track"><div class="bar-fill" style="width:10%"></div></div>
       </div>
+
       <div class="feature-card ok">
-        <div class="feature-name">is_hotfix</div>
-        <div class="feature-value ok">0</div>
-        <div style="font-size:0.72rem;color:#6B7280">normal deploy</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:0%;background:#10B981;"></div>
-        </div>
+        <div class="fc-name">hour_of_day</div>
+        <div class="fc-value" id="fcHour">—</div>
+        <div class="fc-desc" id="fcHourDesc">reading…</div>
+        <div class="bar-track"><div class="bar-fill" id="hourBar" style="width:40%"></div></div>
       </div>
+
       <div class="feature-card ok">
-        <div class="feature-name">deployer_exp</div>
-        <div class="feature-value ok">—</div>
-        <div style="font-size:0.72rem;color:#6B7280">pulled from S3 CSV</div>
-        <div class="feature-bar-track">
-          <div class="feature-bar-fill" style="width:20%;background:#3B82F6;"></div>
-        </div>
+        <div class="fc-name">day_of_week</div>
+        <div class="fc-value" id="fcDay">—</div>
+        <div class="fc-desc" id="fcDayDesc">reading…</div>
+        <div class="bar-track"><div class="bar-fill" id="dayBar" style="width:30%"></div></div>
       </div>
+
+      <div class="feature-card ok">
+        <div class="fc-name">recent_failure_rate</div>
+        <div class="fc-value">0.0</div>
+        <div class="fc-desc">0 of last 10 builds failed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="feature-card ok">
+        <div class="fc-name">test_pass_rate</div>
+        <div class="fc-value">1.0</div>
+        <div class="fc-desc">100 % tests passing</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+      </div>
+
+      <div class="feature-card ok">
+        <div class="fc-name">is_hotfix</div>
+        <div class="fc-value">0</div>
+        <div class="fc-desc">normal planned deploy</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="feature-card ok">
+        <div class="fc-name">deployer_exp</div>
+        <div class="fc-value">—</div>
+        <div class="fc-desc">pulled from S3 CSV</div>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--blue)"></div></div>
+      </div>
+
     </div>
 
-    <!-- ─── TOP RISK REASONS ─────────────────────────────────────── -->
-    <div class="section-label animate delay-2">Top Risk Reasons (from model)</div>
-    <div class="reasons-panel animate delay-2">
+    <!-- Risk reasons -->
+    <div class="section-label a2">Top Risk Contributors (from model)</div>
+    <div class="reasons-panel a2">
       <div class="reason-row">
-        <span class="reason-rank">#1</span>
-        <span class="reason-feat">recent_failure_rate</span>
-        <div class="reason-bar-wrap">
-          <div class="reason-bar-track">
-            <div class="reason-bar-fill" style="width:100%;"></div>
-          </div>
-        </div>
-        <span class="reason-val">0.0 — low risk</span>
-        <span class="reason-imp high">0.278</span>
+        <span class="r-rank">#1</span>
+        <span class="r-feat">recent_failure_rate</span>
+        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" style="width:28%"></div></div></div>
+        <span class="r-val">0.0 — no failures</span>
+        <span class="r-imp">0.278</span>
       </div>
       <div class="reason-row">
-        <span class="reason-rank">#2</span>
-        <span class="reason-feat">diff_size</span>
-        <div class="reason-bar-wrap">
-          <div class="reason-bar-track">
-            <div class="reason-bar-fill" style="width:78%;"></div>
-          </div>
-        </div>
-        <span class="reason-val">600+ lines ← main driver</span>
-        <span class="reason-imp high">0.172</span>
+        <span class="r-rank">#2</span>
+        <span class="r-feat">diff_size</span>
+        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" id="diffReasonBar" style="width:8%"></div></div></div>
+        <span class="r-val" id="diffReasonVal">small — low risk</span>
+        <span class="r-imp">0.172</span>
       </div>
       <div class="reason-row">
-        <span class="reason-rank">#3</span>
-        <span class="reason-feat">test_pass_rate</span>
-        <div class="reason-bar-wrap">
-          <div class="reason-bar-track">
-            <div class="reason-bar-fill" style="width:55%;"></div>
-          </div>
-        </div>
-        <span class="reason-val">1.0 — all passing</span>
-        <span class="reason-imp medium">0.121</span>
+        <span class="r-rank">#3</span>
+        <span class="r-feat">test_pass_rate</span>
+        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" style="width:55%"></div></div></div>
+        <span class="r-val">1.0 — all passing</span>
+        <span class="r-imp">0.121</span>
       </div>
     </div>
 
-    <!-- ─── SAMPLE DATASET ROWS ──────────────────────────────────── -->
-    <div class="section-label animate delay-3">Training Data — Risky Examples (label=1)</div>
-    <div class="dataset-panel animate delay-3">
-      <table class="ds-table">
-        <thead>
-          <tr>
-            <th>diff_size</th>
-            <th>files</th>
-            <th>hour</th>
-            <th>day</th>
-            <th>fail_rate</th>
-            <th>test_pass</th>
-            <th>hotfix</th>
-            <th>exp</th>
-            <th>days_since</th>
-            <th>time_delta</th>
-            <th>label</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Risky rows (label=1) from the training set -->
-          <tr>
-            <td>525</td>
-            <td>2</td>
-            <td>8</td>
-            <td>1</td>
-            <td>0.443</td>
-            <td>0.892</td>
-            <td>0</td>
-            <td>245</td>
-            <td>20.7</td>
-            <td>-0.209</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>451</td>
-            <td>9</td>
-            <td>14</td>
-            <td>4</td>
-            <td>0.134</td>
-            <td>0.720</td>
-            <td>1</td>
-            <td>41</td>
-            <td>4.9</td>
-            <td>0.009</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>446</td>
-            <td>1</td>
-            <td>15</td>
-            <td>1</td>
-            <td>0.226</td>
-            <td>0.706</td>
-            <td>0</td>
-            <td>70</td>
-            <td>4.8</td>
-            <td>-0.224</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>360</td>
-            <td>3</td>
-            <td>15</td>
-            <td>3</td>
-            <td>0.404</td>
-            <td>0.685</td>
-            <td>0</td>
-            <td>51</td>
-            <td>14.9</td>
-            <td>0.285</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>230</td>
-            <td>2</td>
-            <td>17</td>
-            <td>4</td>
-            <td>0.558</td>
-            <td>0.551</td>
-            <td>0</td>
-            <td>13</td>
-            <td>0.4</td>
-            <td>-0.454</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>172</td>
-            <td>1</td>
-            <td>14</td>
-            <td>6</td>
-            <td>0.590</td>
-            <td>0.667</td>
-            <td>0</td>
-            <td>7</td>
-            <td>0.6</td>
-            <td>0.166</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <tr>
-            <td>162</td>
-            <td>7</td>
-            <td>20</td>
-            <td>6</td>
-            <td>0.224</td>
-            <td>0.788</td>
-            <td>0</td>
-            <td>93</td>
-            <td>6.1</td>
-            <td>-0.129</td>
-            <td><span class="ds-badge risky">RISKY</span></td>
-          </tr>
-          <!-- Safe rows for contrast -->
-          <tr>
-            <td>70</td>
-            <td>6</td>
-            <td>18</td>
-            <td>1</td>
-            <td>0.193</td>
-            <td>0.767</td>
-            <td>0</td>
-            <td>47</td>
-            <td>7.3</td>
-            <td>0.097</td>
-            <td><span class="ds-badge safe">SAFE</span></td>
-          </tr>
-          <tr>
-            <td>197</td>
-            <td>1</td>
-            <td>10</td>
-            <td>3</td>
-            <td>0.035</td>
-            <td>0.944</td>
-            <td>0</td>
-            <td>32</td>
-            <td>2.8</td>
-            <td>0.318</td>
-            <td><span class="ds-badge safe">SAFE</span></td>
-          </tr>
-          <tr>
-            <td>25</td>
-            <td>5</td>
-            <td>14</td>
-            <td>4</td>
-            <td>0.439</td>
-            <td>0.802</td>
-            <td>0</td>
-            <td>21</td>
-            <td>1.2</td>
-            <td>-0.347</td>
-            <td><span class="ds-badge safe">SAFE</span></td>
-          </tr>
-        </tbody>
-      </table>
-      <div style="font-size:0.72rem;color:#6B7280;margin-top:1rem;font-family:'JetBrains Mono',monospace;">
-        ↑ Sample rows from synthetic training set. Key pattern: diff_size &gt; 400 + failure_rate &gt; 0.4 = high risk
-      </div>
-    </div>
-
-    <!-- ─── PIPELINE TIMELINE ──────────────────────────────────────── -->
-    <div class="section-label animate delay-4">Expected Pipeline Timeline (this commit)</div>
-    <div class="timeline animate delay-4">
-      <div class="timeline-item">
-        <div class="timeline-dot pass">📤</div>
-        <div class="timeline-body">
-          <div class="timeline-title">Git Push → GitHub</div>
-          <div class="timeline-desc">Large diff committed — ~600 lines changed across <strong>1 file</strong>. Webhook
-            fires immediately.</div>
-          <div class="timeline-time">t+0s</div>
+    <!-- Pipeline timeline -->
+    <div class="section-label a3">Pipeline Timeline (this commit)</div>
+    <div class="timeline a3">
+      <div class="ti">
+        <div class="ti-dot pass">📤</div>
+        <div class="ti-body">
+          <div class="ti-title">Git Push → GitHub</div>
+          <div class="ti-desc">Small, clean commit. Webhook fires immediately.</div>
+          <div class="ti-time">t+0s</div>
         </div>
-        <div class="timeline-badge pass">TRIGGERED</div>
+        <div class="ti-badge">TRIGGERED</div>
       </div>
-      <div class="timeline-item">
-        <div class="timeline-dot pass">🔧</div>
-        <div class="timeline-body">
-          <div class="timeline-title">Checkout + Compute Diff Size</div>
-          <div class="timeline-desc"><code
-              style="font-family:'JetBrains Mono',monospace;font-size:0.8rem">git diff --stat HEAD~1 HEAD</code> counts
-            600+ inserted/deleted lines → sets <code
-              style="font-family:'JetBrains Mono',monospace;font-size:0.8rem">GIT_DIFF_SIZE</code></div>
-          <div class="timeline-time">t+5s</div>
+      <div class="ti">
+        <div class="ti-dot pass">🔧</div>
+        <div class="ti-body">
+          <div class="ti-title">Checkout + Compute Diff Size</div>
+          <div class="ti-desc"><code style="font-family:var(--mono);font-size:0.78rem">git diff --stat HEAD~1 HEAD</code> — small diff detected → <strong style="color:var(--green)">low GIT_DIFF_SIZE</strong></div>
+          <div class="ti-time">t+5s</div>
         </div>
-        <div class="timeline-badge pass">PASS</div>
+        <div class="ti-badge">PASS</div>
       </div>
-      <div class="timeline-item">
-        <div class="timeline-dot warn">🚢</div>
-        <div class="timeline-body">
-          <div class="timeline-title">SafeShip Risk Check — POST /score</div>
-          <div class="timeline-desc">Sends diff_size=600+, hour, day, failure_rate=0 to EC2. Model scores this deploy.
-            Large diff is the dominant signal.</div>
-          <div class="timeline-time">t+6s</div>
+      <div class="ti">
+        <div class="ti-dot pass">🚢</div>
+        <div class="ti-body">
+          <div class="ti-title">SafeShip Risk Check — POST /score</div>
+          <div class="ti-desc">Score returned: <strong style="color:var(--green)">22/100</strong> — well below the 70-point block threshold.</div>
+          <div class="ti-time">t+6s</div>
         </div>
-        <div class="timeline-badge warn">SCORING</div>
+        <div class="ti-badge">SAFE</div>
       </div>
-      <div class="timeline-item">
-        <div class="timeline-dot fail">🚫</div>
-        <div class="timeline-body">
-          <div class="timeline-title">SafeShip BLOCKED (expected)</div>
-          <div class="timeline-desc">Score ≥ 70 → <code
-              style="font-family:'JetBrains Mono',monospace;font-size:0.8rem">error()</code> called → pipeline fails. If
-            score is 40–69, gets WARNING and continues.</div>
-          <div class="timeline-time">t+7s</div>
+      <div class="ti">
+        <div class="ti-dot pass">🧪</div>
+        <div class="ti-body">
+          <div class="ti-title">Build &amp; Test</div>
+          <div class="ti-desc">All tests pass — <code style="font-family:var(--mono);font-size:0.78rem">test_pass_rate = 1.0</code></div>
+          <div class="ti-time">t+30s</div>
         </div>
-        <div class="timeline-badge fail">BLOCKED</div>
+        <div class="ti-badge">PASS</div>
       </div>
-      <div class="timeline-item">
-        <div class="timeline-dot skip">🚀</div>
-        <div class="timeline-body">
-          <div class="timeline-title">Deploy — SKIPPED</div>
-          <div class="timeline-desc">Stage is skipped because SafeShip set <code
-              style="font-family:'JetBrains Mono',monospace;font-size:0.8rem">SAFESHIP_VERDICT = BLOCKED</code></div>
-          <div class="timeline-time">—</div>
+      <div class="ti">
+        <div class="ti-dot pass">🚀</div>
+        <div class="ti-body">
+          <div class="ti-title">Deploy — APPROVED</div>
+          <div class="ti-desc">SafeShip verdict is SAFE → deploy proceeds. <code style="font-family:var(--mono);font-size:0.78rem">SAFESHIP_VERDICT = SAFE</code></div>
+          <div class="ti-time">t+35s</div>
         </div>
-        <div class="timeline-badge skip">SKIPPED</div>
+        <div class="ti-badge">DEPLOYED ✅</div>
       </div>
     </div>
 
   </div><!-- /page -->
 
   <footer>
-    SafeShip Validation Test &nbsp;·&nbsp; <code>diff_size ≥ 500 → model predicts risky</code> &nbsp;·&nbsp;
-    Push a small clean commit after this to see a SAFE score.
+    SafeShip &nbsp;·&nbsp; <code>diff_size &lt; 100 + failure_rate = 0.0 + tests = 1.0 → SAFE</code>
+    &nbsp;·&nbsp; Score: <strong style="color:var(--green)" id="footerScore">22</strong>/100
   </footer>
 
   <script>
-    // ── Live clock / day values to show what Jenkins will see ──
-    (function updateLiveValues() {
-      const now = new Date();
+    (function () {
+      const now  = new Date();
       const hour = now.getHours();
-      const day = now.getDay(); // 0=Sun, 6=Sat
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const hourRisk = hour >= 15 && hour <= 18 ? 'danger' : hour >= 11 && hour <= 14 ? 'warn' : 'ok';
-      const dayRisk = day === 5 ? 'danger' : day === 4 ? 'warn' : 'ok';
+      const day  = now.getDay();
+      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const shortHour = `${hour}:00`;
+      const dayName   = days[day];
 
-      document.getElementById('liveHour').textContent = `${hour} (${hour}:00 UTC)`;
-      document.getElementById('liveHour').className = `commit-val ${hourRisk}`;
-      document.getElementById('liveDay').textContent = `${day} (${days[day]})`;
-      document.getElementById('liveDay').className = `commit-val ${dayRisk}`;
-
-      document.getElementById('hvVal').textContent = hour;
-      document.getElementById('hvVal').className = `feature-value ${hourRisk}`;
-      document.getElementById('hourLabel').textContent = hour >= 15 && hour <= 18 ? '3–6pm danger zone 🔴' : hour >= 9 && hour <= 11 ? 'morning — safer 🟢' : 'mid-day 🟡';
-      document.getElementById('hourBar').style.width = `${Math.round((hour / 23) * 100)}%`;
-
-      document.getElementById('dvVal').textContent = day;
-      document.getElementById('dvVal').className = `feature-value ${dayRisk}`;
-      document.getElementById('dayLabel').textContent = day === 5 ? 'Friday — highest risk 🔴' : day === 0 || day === 6 ? 'Weekend 🟡' : 'Weekday — safer 🟢';
-      document.getElementById('dayBar').style.width = `${[10, 30, 30, 30, 40, 70, 20][day]}%`;
+      document.getElementById('liveHour').textContent = `${hour} (${shortHour})`;
+      document.getElementById('liveDay').textContent  = `${day} (${dayName})`;
+      document.getElementById('fcHour').textContent   = hour;
+      document.getElementById('fcDay').textContent    = day;
+      document.getElementById('fcHourDesc').textContent = (hour >= 9 && hour <= 16) ? 'business hours 🟢' : 'off-peak 🟡';
+      document.getElementById('fcDayDesc').textContent  = (day === 5) ? 'Friday — caution 🟡' : (day === 0 || day === 6) ? 'Weekend 🟡' : 'Weekday — safe 🟢';
+      document.getElementById('hourBar').style.width = `${Math.round((hour / 23) * 60)}%`;
+      document.getElementById('dayBar').style.width  = `${[15, 25, 25, 25, 30, 55, 15][day]}%`;
     })();
   </script>
 
 </body>
-
 </html>
