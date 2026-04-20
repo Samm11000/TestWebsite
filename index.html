@@ -1,28 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafeShip — Deploy Risk Dashboard</title>
   <meta name="description" content="SafeShip deploy risk dashboard. Clean, safe deploy with healthy score." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
 
     :root {
-      --green:  #10B981;
-      --blue:   #3B82F6;
+      --green: #10B981;
+      --blue: #3B82F6;
       --purple: #8B5CF6;
       --yellow: #F59E0B;
-      --red:    #EF4444;
-      --bg0:    #020409;
-      --bg1:    #0B1120;
-      --bg2:    #111827;
-      --border: rgba(255,255,255,0.07);
-      --muted:  #6B7280;
-      --mono:   'JetBrains Mono', monospace;
+      --red: #EF4444;
+      --bg0: #020409;
+      --bg1: #0B1120;
+      --bg2: #111827;
+      --border: rgba(255, 255, 255, 0.07);
+      --muted: #6B7280;
+      --mono: 'JetBrains Mono', monospace;
     }
 
     body {
@@ -38,8 +50,8 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(16,185,129,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(16,185,129,0.025) 1px, transparent 1px);
+        linear-gradient(rgba(16, 185, 129, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.025) 1px, transparent 1px);
       background-size: 40px 40px;
       pointer-events: none;
       z-index: 0;
@@ -47,150 +59,458 @@
 
     /* ── Header ── */
     header {
-      position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 1rem 2rem;
-      background: rgba(2,4,9,0.92);
+      background: rgba(2, 4, 9, 0.92);
       backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
     }
-    .logo { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.5px; }
-    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg,#10B981,#3B82F6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-    .header-badge {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-size: 0.78rem; font-family: var(--mono); color: var(--green);
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
-    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #10B981, #3B82F6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      color: var(--green);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
     @keyframes pulse {
-      0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(16,185,129,0.5); }
-      50%      { opacity:0.6; box-shadow:0 0 0 6px rgba(16,185,129,0); }
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      }
+
+      50% {
+        opacity: 0.6;
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
     }
 
     /* ── Layout ── */
-    .page { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
 
     /* ── Animations ── */
     @keyframes fadeUp {
-      from { opacity:0; transform:translateY(14px); }
-      to   { opacity:1; transform:translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
-    .a0 { animation: fadeUp 0.5s ease both; }
-    .a1 { animation: fadeUp 0.5s 0.1s ease both; }
-    .a2 { animation: fadeUp 0.5s 0.2s ease both; }
-    .a3 { animation: fadeUp 0.5s 0.3s ease both; }
+
+    .a0 {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .a1 {
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+
+    .a2 {
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+
+    .a3 {
+      animation: fadeUp 0.5s 0.3s ease both;
+    }
 
     /* ── Hero card ── */
     .hero {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
-      background: var(--bg1); border: 1px solid rgba(16,185,129,0.2);
-      border-radius: 20px; padding: 2.5rem; margin-bottom: 2rem;
-      position: relative; overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      background: var(--bg1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 20px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
     }
-    @media(max-width:660px) { .hero { grid-template-columns:1fr; } }
+
+    @media(max-width:660px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .hero::after {
       content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
       background: linear-gradient(90deg, #10B981, #3B82F6, #8B5CF6);
     }
-    .hero-left h1 { font-size: clamp(1.4rem,3.5vw,2.2rem); font-weight: 900; letter-spacing: -1px; line-height: 1.15; margin-bottom: 0.75rem; }
-    .hero-left h1 span { color: var(--green); }
-    .hero-left p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.25rem; }
+
+    .hero-left h1 {
+      font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero-left h1 span {
+      color: var(--green);
+    }
+
+    .hero-left p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
 
     .meta-box {
-      background: var(--bg0); border: 1px solid var(--border);
-      border-radius: 10px; padding: 1rem; font-family: var(--mono); font-size: 0.78rem;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
     }
-    .meta-row { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
-    .meta-row:last-child { margin-bottom: 0; }
-    .meta-key { color: var(--muted); }
-    .safe-val { color: var(--green); }
-    .ok-val   { color: var(--blue); }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+    }
+
+    .meta-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .meta-key {
+      color: var(--muted);
+    }
+
+    .safe-val {
+      color: var(--green);
+    }
+
+    .ok-val {
+      color: var(--blue);
+    }
 
     /* ── Gauge ── */
-    .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .gauge-svg  { width: 200px; height: 120px; }
-    .gauge-score { font-size: 3rem; font-weight: 900; letter-spacing: -2px; text-align: center; margin-top: 0.5rem; color: var(--green); }
-    .gauge-verdict {
-      font-size: 0.73rem; font-weight: 700; letter-spacing: 3px; text-align: center;
-      margin-top: 0.3rem; padding: 0.3rem 1rem; border-radius: 100px;
-      background: rgba(16,185,129,0.12); color: var(--green);
-      border: 1px solid rgba(16,185,129,0.3);
+    .gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    .gauge-sub { font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
+
+    .gauge-svg {
+      width: 200px;
+      height: 120px;
+    }
+
+    .gauge-score {
+      font-size: 3rem;
+      font-weight: 900;
+      letter-spacing: -2px;
+      text-align: center;
+      margin-top: 0.5rem;
+      color: var(--green);
+    }
+
+    .gauge-verdict {
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-align: center;
+      margin-top: 0.3rem;
+      padding: 0.3rem 1rem;
+      border-radius: 100px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .gauge-sub {
+      font-size: 0.73rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
 
     /* ── Section label ── */
     .section-label {
-      font-size: 0.68rem; font-weight: 700; letter-spacing: 2.5px;
-      text-transform: uppercase; color: var(--blue); margin-bottom: 1rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 1rem;
     }
 
     /* ── Feature cards ── */
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(185px,1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .feature-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.2rem; transition: border-color 0.2s;
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
-    .feature-card:hover { border-color: rgba(255,255,255,0.12); }
-    .feature-card.ok { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.03); }
-    .fc-name  { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-bottom: 0.4rem; }
-    .fc-value { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; color: var(--green); margin-bottom: 0.25rem; }
-    .fc-desc  { font-size: 0.7rem; color: var(--muted); }
-    .bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
-    .bar-fill  { height: 100%; border-radius: 2px; background: var(--green); }
+
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .feature-card.ok {
+      border-color: rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.03);
+    }
+
+    .fc-name {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .fc-value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--green);
+      margin-bottom: 0.25rem;
+    }
+
+    .fc-desc {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .bar-track {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--green);
+    }
 
     /* ── Reasons panel ── */
     .reasons-panel {
-      background: var(--bg1); border: 1px solid rgba(16,185,129,0.18);
-      border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+      background: var(--bg1);
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
     }
+
     .reason-row {
-      display: flex; align-items: center; gap: 1rem;
-      padding: 0.8rem 0; border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid var(--border);
     }
-    .reason-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .r-rank { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); width: 20px; flex-shrink: 0; }
-    .r-feat { font-family: var(--mono); font-size: 0.82rem; flex: 1; }
-    .r-bar-wrap { width: 80px; }
-    .r-bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
-    .r-bar-fill  { height: 100%; background: var(--green); border-radius: 3px; }
-    .r-val { font-size: 0.82rem; color: var(--muted); min-width: 120px; text-align: right; }
-    .r-imp { font-weight: 700; font-size: 0.82rem; min-width: 48px; text-align: right; color: var(--green); }
+
+    .reason-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .r-rank {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      width: 20px;
+      flex-shrink: 0;
+    }
+
+    .r-feat {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      flex: 1;
+    }
+
+    .r-bar-wrap {
+      width: 80px;
+    }
+
+    .r-bar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .r-bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 3px;
+    }
+
+    .r-val {
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .r-imp {
+      font-weight: 700;
+      font-size: 0.82rem;
+      min-width: 48px;
+      text-align: right;
+      color: var(--green);
+    }
 
     /* ── Timeline ── */
-    .timeline { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+
     .ti {
-      display: flex; align-items: flex-start; gap: 1.25rem;
-      padding: 1.2rem 0; border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.2rem 0;
+      border-bottom: 1px solid var(--border);
     }
-    .ti:last-child { border-bottom: none; }
+
+    .ti:last-child {
+      border-bottom: none;
+    }
+
     .ti-dot {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-top: 0.1rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      margin-top: 0.1rem;
     }
-    .ti-dot.pass { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
-    .ti-body { flex: 1; }
-    .ti-title { font-weight: 700; font-size: 0.93rem; margin-bottom: 0.2rem; }
-    .ti-desc  { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
-    .ti-time  { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+    .ti-dot.pass {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .ti-body {
+      flex: 1;
+    }
+
+    .ti-title {
+      font-weight: 700;
+      font-size: 0.93rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .ti-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .ti-time {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
     .ti-badge {
-      padding: 0.25rem 0.75rem; border-radius: 100px;
-      font-size: 0.7rem; font-weight: 700; align-self: flex-start;
-      margin-top: 0.25rem; white-space: nowrap;
-      background: rgba(16,185,129,0.1); color: var(--green);
-      border: 1px solid rgba(16,185,129,0.25);
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      align-self: flex-start;
+      margin-top: 0.25rem;
+      white-space: nowrap;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.25);
     }
 
     /* ── Footer ── */
     footer {
-      text-align: center; padding: 2rem;
+      text-align: center;
+      padding: 2rem;
       border-top: 1px solid var(--border);
-      font-size: 0.78rem; color: var(--muted);
+      font-size: 0.78rem;
+      color: var(--muted);
     }
-    footer code { font-family: var(--mono); font-size: 0.73rem; color: #4B5563; }
+
+    footer code {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: #4B5563;
+    }
   </style>
 </head>
-<body>
 
+<body>
+  <!-- test1 -->
   <header>
     <div class="logo">
       <div class="logo-icon">🚢</div>
@@ -214,27 +534,32 @@
           and the pipeline proceeds automatically.
         </p>
         <div class="meta-box">
-          <div class="meta-row"><span class="meta-key">diff_size</span>       <span class="safe-val" id="liveDiff">~small</span></div>
-          <div class="meta-row"><span class="meta-key">files_changed</span>   <span class="safe-val">1</span></div>
-          <div class="meta-row"><span class="meta-key">hour_of_day</span>     <span class="ok-val" id="liveHour">—</span></div>
-          <div class="meta-row"><span class="meta-key">day_of_week</span>     <span class="ok-val" id="liveDay">—</span></div>
+          <div class="meta-row"><span class="meta-key">diff_size</span> <span class="safe-val"
+              id="liveDiff">~small</span></div>
+          <div class="meta-row"><span class="meta-key">files_changed</span> <span class="safe-val">1</span></div>
+          <div class="meta-row"><span class="meta-key">hour_of_day</span> <span class="ok-val" id="liveHour">—</span>
+          </div>
+          <div class="meta-row"><span class="meta-key">day_of_week</span> <span class="ok-val" id="liveDay">—</span>
+          </div>
           <div class="meta-row"><span class="meta-key">recent_failure_rate</span><span class="safe-val">0.0</span></div>
-          <div class="meta-row"><span class="meta-key">test_pass_rate</span>  <span class="safe-val">1.0</span></div>
+          <div class="meta-row"><span class="meta-key">test_pass_rate</span> <span class="safe-val">1.0</span></div>
           <div class="meta-row"><span class="meta-key">expected_verdict</span><span class="safe-val">✅ SAFE</span></div>
         </div>
       </div>
       <div class="gauge-wrap">
         <svg class="gauge-svg" viewBox="0 0 200 120">
           <!-- track -->
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"
+            stroke-linecap="round" />
           <!-- fill — score ~22 → dashoffset ~195 (low risk) -->
           <path id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#10B981" stroke-width="14"
             stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="196"
             style="transition:stroke-dashoffset 1.5s ease;" />
           <!-- threshold marker at 70 -->
-          <line x1="100" y1="20" x2="100" y2="36" stroke="rgba(245,158,11,0.6)" stroke-width="2"/>
-          <text x="100" y="16" fill="#F59E0B" font-size="9" text-anchor="middle" font-family="'JetBrains Mono',monospace">70</text>
-          <text x="18"  y="116" fill="#10B981" font-size="9" font-family="'JetBrains Mono',monospace">SAFE</text>
+          <line x1="100" y1="20" x2="100" y2="36" stroke="rgba(245,158,11,0.6)" stroke-width="2" />
+          <text x="100" y="16" fill="#F59E0B" font-size="9" text-anchor="middle"
+            font-family="'JetBrains Mono',monospace">70</text>
+          <text x="18" y="116" fill="#10B981" font-size="9" font-family="'JetBrains Mono',monospace">SAFE</text>
           <text x="150" y="116" fill="#EF4444" font-size="9" font-family="'JetBrains Mono',monospace">BLOCKED</text>
         </svg>
         <div class="gauge-score" id="gaugeScore">22</div>
@@ -251,56 +576,72 @@
         <div class="fc-name">diff_size</div>
         <div class="fc-value" id="fcDiff">~small</div>
         <div class="fc-desc">lines changed — <strong style="color:var(--green)">Low</strong></div>
-        <div class="bar-track"><div class="bar-fill" id="diffBar" style="width:8%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" id="diffBar" style="width:8%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">files_changed</div>
         <div class="fc-value">1</div>
         <div class="fc-desc">single targeted file</div>
-        <div class="bar-track"><div class="bar-fill" style="width:10%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:10%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">hour_of_day</div>
         <div class="fc-value" id="fcHour">—</div>
         <div class="fc-desc" id="fcHourDesc">reading…</div>
-        <div class="bar-track"><div class="bar-fill" id="hourBar" style="width:40%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" id="hourBar" style="width:40%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">day_of_week</div>
         <div class="fc-value" id="fcDay">—</div>
         <div class="fc-desc" id="fcDayDesc">reading…</div>
-        <div class="bar-track"><div class="bar-fill" id="dayBar" style="width:30%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" id="dayBar" style="width:30%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">recent_failure_rate</div>
         <div class="fc-value">0.0</div>
         <div class="fc-desc">0 of last 10 builds failed</div>
-        <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:0%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">test_pass_rate</div>
         <div class="fc-value">1.0</div>
         <div class="fc-desc">100 % tests passing</div>
-        <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:100%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">is_hotfix</div>
         <div class="fc-value">0</div>
         <div class="fc-desc">normal planned deploy</div>
-        <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:0%"></div>
+        </div>
       </div>
 
       <div class="feature-card ok">
         <div class="fc-name">deployer_exp</div>
         <div class="fc-value">—</div>
         <div class="fc-desc">pulled from S3 CSV</div>
-        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--blue)"></div></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:20%;background:var(--blue)"></div>
+        </div>
       </div>
 
     </div>
@@ -311,21 +652,33 @@
       <div class="reason-row">
         <span class="r-rank">#1</span>
         <span class="r-feat">recent_failure_rate</span>
-        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" style="width:28%"></div></div></div>
+        <div class="r-bar-wrap">
+          <div class="r-bar-track">
+            <div class="r-bar-fill" style="width:28%"></div>
+          </div>
+        </div>
         <span class="r-val">0.0 — no failures</span>
         <span class="r-imp">0.278</span>
       </div>
       <div class="reason-row">
         <span class="r-rank">#2</span>
         <span class="r-feat">diff_size</span>
-        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" id="diffReasonBar" style="width:8%"></div></div></div>
+        <div class="r-bar-wrap">
+          <div class="r-bar-track">
+            <div class="r-bar-fill" id="diffReasonBar" style="width:8%"></div>
+          </div>
+        </div>
         <span class="r-val" id="diffReasonVal">small — low risk</span>
         <span class="r-imp">0.172</span>
       </div>
       <div class="reason-row">
         <span class="r-rank">#3</span>
         <span class="r-feat">test_pass_rate</span>
-        <div class="r-bar-wrap"><div class="r-bar-track"><div class="r-bar-fill" style="width:55%"></div></div></div>
+        <div class="r-bar-wrap">
+          <div class="r-bar-track">
+            <div class="r-bar-fill" style="width:55%"></div>
+          </div>
+        </div>
         <span class="r-val">1.0 — all passing</span>
         <span class="r-imp">0.121</span>
       </div>
@@ -347,7 +700,9 @@
         <div class="ti-dot pass">🔧</div>
         <div class="ti-body">
           <div class="ti-title">Checkout + Compute Diff Size</div>
-          <div class="ti-desc"><code style="font-family:var(--mono);font-size:0.78rem">git diff --stat HEAD~1 HEAD</code> — small diff detected → <strong style="color:var(--green)">low GIT_DIFF_SIZE</strong></div>
+          <div class="ti-desc"><code
+              style="font-family:var(--mono);font-size:0.78rem">git diff --stat HEAD~1 HEAD</code> — small diff detected
+            → <strong style="color:var(--green)">low GIT_DIFF_SIZE</strong></div>
           <div class="ti-time">t+5s</div>
         </div>
         <div class="ti-badge">PASS</div>
@@ -356,7 +711,8 @@
         <div class="ti-dot pass">🚢</div>
         <div class="ti-body">
           <div class="ti-title">SafeShip Risk Check — POST /score</div>
-          <div class="ti-desc">Score returned: <strong style="color:var(--green)">22/100</strong> — well below the 70-point block threshold.</div>
+          <div class="ti-desc">Score returned: <strong style="color:var(--green)">22/100</strong> — well below the
+            70-point block threshold.</div>
           <div class="ti-time">t+6s</div>
         </div>
         <div class="ti-badge">SAFE</div>
@@ -365,7 +721,8 @@
         <div class="ti-dot pass">🧪</div>
         <div class="ti-body">
           <div class="ti-title">Build &amp; Test</div>
-          <div class="ti-desc">All tests pass — <code style="font-family:var(--mono);font-size:0.78rem">test_pass_rate = 1.0</code></div>
+          <div class="ti-desc">All tests pass — <code
+              style="font-family:var(--mono);font-size:0.78rem">test_pass_rate = 1.0</code></div>
           <div class="ti-time">t+30s</div>
         </div>
         <div class="ti-badge">PASS</div>
@@ -374,7 +731,8 @@
         <div class="ti-dot pass">🚀</div>
         <div class="ti-body">
           <div class="ti-title">Deploy — APPROVED</div>
-          <div class="ti-desc">SafeShip verdict is SAFE → deploy proceeds. <code style="font-family:var(--mono);font-size:0.78rem">SAFESHIP_VERDICT = SAFE</code></div>
+          <div class="ti-desc">SafeShip verdict is SAFE → deploy proceeds. <code
+              style="font-family:var(--mono);font-size:0.78rem">SAFESHIP_VERDICT = SAFE</code></div>
           <div class="ti-time">t+35s</div>
         </div>
         <div class="ti-badge">DEPLOYED ✅</div>
@@ -390,23 +748,24 @@
 
   <script>
     (function () {
-      const now  = new Date();
+      const now = new Date();
       const hour = now.getHours();
-      const day  = now.getDay();
-      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const day = now.getDay();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const shortHour = `${hour}:00`;
-      const dayName   = days[day];
+      const dayName = days[day];
 
       document.getElementById('liveHour').textContent = `${hour} (${shortHour})`;
-      document.getElementById('liveDay').textContent  = `${day} (${dayName})`;
-      document.getElementById('fcHour').textContent   = hour;
-      document.getElementById('fcDay').textContent    = day;
+      document.getElementById('liveDay').textContent = `${day} (${dayName})`;
+      document.getElementById('fcHour').textContent = hour;
+      document.getElementById('fcDay').textContent = day;
       document.getElementById('fcHourDesc').textContent = (hour >= 9 && hour <= 16) ? 'business hours 🟢' : 'off-peak 🟡';
-      document.getElementById('fcDayDesc').textContent  = (day === 5) ? 'Friday — caution 🟡' : (day === 0 || day === 6) ? 'Weekend 🟡' : 'Weekday — safe 🟢';
+      document.getElementById('fcDayDesc').textContent = (day === 5) ? 'Friday — caution 🟡' : (day === 0 || day === 6) ? 'Weekend 🟡' : 'Weekday — safe 🟢';
       document.getElementById('hourBar').style.width = `${Math.round((hour / 23) * 60)}%`;
-      document.getElementById('dayBar').style.width  = `${[15, 25, 25, 25, 30, 55, 15][day]}%`;
+      document.getElementById('dayBar').style.width = `${[15, 25, 25, 25, 30, 55, 15][day]}%`;
     })();
   </script>
 
 </body>
+
 </html>
