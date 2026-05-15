@@ -4,8 +4,8 @@ pipeline {
     environment {
         // ── SafeShip configuration ─────────────────────────────────────────
         SAFESHIP_EC2_IP     = '54.89.160.150'
-        SAFESHIP_TENANT_ID  = '318997eaa6124b6d'
-        SAFESHIP_API_KEY    = 'bcc6f5f5c2ce4b96971d9a2529620afa'
+        SAFESHIP_TENANT_ID  = 'd4417b221c5841c9'
+        SAFESHIP_API_KEY    = '2ffab7c3896a40358162e3ceea9976b0'
         SAFESHIP_THRESHOLD  = '70'
     }
 
