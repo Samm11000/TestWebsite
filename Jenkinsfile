@@ -48,18 +48,22 @@ pipeline {
                     echo "🚢 SafeShip: scoring deploy at hour=${hourVal}, day=${dayVal}, diff=${env.GIT_DIFF_SIZE} lines"
 
                     // ── Safe deploy: low failure rate, high test pass, small diff
+                    def commitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                    def isHotfix = (commitMsg =~ /(?i)hotfix/) ? 1 : 0
+
+                    // ── Injecting RISKY values to test SafeShip blocking
                     def payload = """{
                         "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
                         "api_key":             "${env.SAFESHIP_API_KEY}",
                         "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
                         "files_changed":       1,
-                        "hour_of_day":         ${hourVal},
-                        "day_of_week":         ${dayVal},
-                        "recent_failure_rate": 0.0,
-                        "test_pass_rate":      1.0,
-                        "is_hotfix":           0,
-                        "deployer_exp":        120,
-                        "days_since_deploy":   1.0,
+                        "hour_of_day":         17,
+                        "day_of_week":         5,
+                        "recent_failure_rate": 0.3,
+                        "test_pass_rate":      0.8,
+                        "is_hotfix":           1,
+                        "deployer_exp":        10,
+                        "days_since_deploy":   0.0,
                         "build_time_delta":    0.0
                     }"""
 
