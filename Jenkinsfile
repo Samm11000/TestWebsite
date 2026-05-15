@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-
         // ─── 1. Checkout ────────────────────────────────────────────────────
         stage('Checkout') {
             steps {
@@ -48,22 +47,18 @@ pipeline {
                     echo "🚢 SafeShip: scoring deploy at hour=${hourVal}, day=${dayVal}, diff=${env.GIT_DIFF_SIZE} lines"
 
                     // ── Safe deploy: low failure rate, high test pass, small diff
-                    def commitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
-                    def isHotfix = (commitMsg =~ /(?i)hotfix/) ? 1 : 0
-
-                    // ── Injecting RISKY values to test SafeShip blocking
                     def payload = """{
                         "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
                         "api_key":             "${env.SAFESHIP_API_KEY}",
                         "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
                         "files_changed":       1,
-                        "hour_of_day":         17,
-                        "day_of_week":         5,
-                        "recent_failure_rate": 0.3,
-                        "test_pass_rate":      0.8,
-                        "is_hotfix":           1,
-                        "deployer_exp":        10,
-                        "days_since_deploy":   0.0,
+                        "hour_of_day":         ${hourVal},
+                        "day_of_week":         ${dayVal},
+                        "recent_failure_rate": 0.0,
+                        "test_pass_rate":      1.0,
+                        "is_hotfix":           0,
+                        "deployer_exp":        120,
+                        "days_since_deploy":   1.0,
                         "build_time_delta":    0.0
                     }"""
 
@@ -78,24 +73,24 @@ pipeline {
 
                     def result = readJSON text: res
 
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     echo "🎯 SafeShip Score : ${result.score} / 100"
                     echo "📋 Verdict        : ${result.verdict}"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 
                     // Store score for downstream stages
                     env.SAFESHIP_SCORE   = result.score.toString()
                     env.SAFESHIP_VERDICT = result.verdict
-                    env.DG_BUILD_ID      = result.build_id ?: ""
+                    env.DG_BUILD_ID      = result.build_id ?: ''
 
                     if (result.verdict == 'BLOCKED') {
                         error("🚫 SafeShip BLOCKED this deploy (score ${result.score}/100). Fix the risk factors and retry.")
                     } else if (result.verdict == 'CAUTION') {
                         currentBuild.description = "⚠️ SafeShip CAUTION: ${result.score}/100"
-                        echo "⚠️  CAUTION mode — pipeline continues but review is recommended."
+                        echo '⚠️  CAUTION mode — pipeline continues but review is recommended.'
                     } else {
                         currentBuild.description = "✅ SafeShip SAFE: ${result.score}/100"
-                        echo "✅ SafeShip says SAFE — proceeding with deploy."
+                        echo '✅ SafeShip says SAFE — proceeding with deploy.'
                     }
                 }
             }
@@ -104,7 +99,7 @@ pipeline {
         // ─── 4. Build / Validate ────────────────────────────────────────────
         stage('Build') {
             steps {
-                echo "🔨 Running build steps..."
+                echo '🔨 Running build steps...'
                 // Add your real build commands here, for example:
                 //   sh 'npm ci && npm run build'
                 sh 'echo "Build complete ✅"'
@@ -114,7 +109,7 @@ pipeline {
         // ─── 5. Test ────────────────────────────────────────────────────────
         stage('Test') {
             steps {
-                echo "🧪 Running test suite..."
+                echo '🧪 Running test suite...'
                 // Add your real test commands here, for example:
                 //   sh 'npm test -- --watchAll=false'
                 sh 'echo "Tests passed ✅"'
@@ -131,7 +126,6 @@ pipeline {
                 sh 'echo "Deployed successfully ✅"'
             }
         }
-
     } // end stages
 
     // ─── Post Notifications ──────────────────────────────────────────────────
@@ -150,7 +144,7 @@ pipeline {
 
                 if (env.DG_BUILD_ID?.trim()) {
                     def finalLabel = (currentBuild.currentResult == 'SUCCESS') ? 0 : 1
-                    def sourceTxt  = (finalLabel == 0) ? "safe" : "failure"
+                    def sourceTxt  = (finalLabel == 0) ? 'safe' : 'failure'
 
                     def logPayload = """{
                         "tenant_id":"${env.SAFESHIP_TENANT_ID}",
@@ -166,10 +160,9 @@ pipeline {
                         -H 'Content-Type: application/json' \\
                         -d '${logPayload}'"""
                 } else {
-                    echo "⚠️ No build_id found. Skipping /log"
+                    echo '⚠️ No build_id found. Skipping /log'
                 }
             }
         }
     }
-
 } // end pipeline
