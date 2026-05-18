@@ -1,4 +1,5 @@
-//test5
+//test6
+
 pipeline {
     agent any
 
@@ -135,35 +136,26 @@ pipeline {
                     // ─────────────────────────────────────────────────────────────
                     // SAFE SHIP PAYLOAD
                     // ─────────────────────────────────────────────────────────────
+                   //
+// REAL FEATURES
+// These are dynamically extracted
+//
+
                     def payload = """{
-                "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
-                "api_key":             "${env.SAFESHIP_API_KEY}",
+    "tenant_id": "${env.SAFESHIP_TENANT_ID}",
+    "api_key": "${env.SAFESHIP_API_KEY}",
+    "diff_size": ${env.GIT_DIFF_SIZE ?: 10},
+    "files_changed": ${filesChanged},
+    "hour_of_day": ${hourVal},
+    "day_of_week": ${dayVal},
+    "is_hotfix": ${isHotfix},
 
-                // REAL FEATURES
-                "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
-                "files_changed":       ${filesChanged},
-                "hour_of_day":         ${hourVal},
-                "day_of_week":         ${dayVal},
-                "is_hotfix":           ${isHotfix},
-
-                // ─────────────────────────────────────────────
-                // HARDCODED PLACEHOLDER FEATURES
-                // These are currently mocked values.
-                // In future they should come from:
-                //
-                // recent_failure_rate -> deployment history DB
-                // test_pass_rate      -> JUnit / Pytest reports
-                // deployer_exp        -> engineer deployment history
-                // days_since_deploy   -> deployment timestamps
-                // build_time_delta    -> CI/CD metrics history
-                // ─────────────────────────────────────────────
-
-                "recent_failure_rate": 0.0,
-                "test_pass_rate":      1.0,
-                "deployer_exp":        120,
-                "days_since_deploy":   1.0,
-                "build_time_delta":    0.0
-            }"""
+    "recent_failure_rate": 0.0,
+    "test_pass_rate": 1.0,
+    "deployer_exp": 120,
+    "days_since_deploy": 1.0,
+    "build_time_delta": 0.0
+}"""
 
                     // ─────────────────────────────────────────────────────────────
                     // Send scoring request to SafeShip backend
