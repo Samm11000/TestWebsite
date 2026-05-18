@@ -1,4 +1,4 @@
-//test4
+//test5
 pipeline {
     agent any
 
@@ -38,37 +38,142 @@ pipeline {
         }
 
         // ─── 3. SafeShip Risk Check ──────────────────────────────────────────
+        // stage('SafeShip Risk Check') {
+        //     steps {
+        //         script {
+        //             def now     = new Date()
+        //             def hourVal = now.hours
+        //             def dayVal  = now.day   // 0 = Sunday … 6 = Saturday
+
+        //             echo "🚢 SafeShip: scoring deploy at hour=${hourVal}, day=${dayVal}, diff=${env.GIT_DIFF_SIZE} lines"
+
+        //             // ── Safe deploy: low failure rate, high test pass, small diff
+        //             def payload = """{
+        //                 "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
+        //                 "api_key":             "${env.SAFESHIP_API_KEY}",
+        //                 "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
+        //                 "files_changed":       1,
+        //                 "hour_of_day":         ${hourVal},
+        //                 "day_of_week":         ${dayVal},
+        //                 "recent_failure_rate": 0.0,
+        //                 "test_pass_rate":      1.0,
+        //                 "is_hotfix":           0,
+        //                 "deployer_exp":        120,
+        //                 "days_since_deploy":   1.0,
+        //                 "build_time_delta":    0.0
+        //             }"""
+
+        //             def res = sh(
+        //                 script: """curl -s --max-time 10 -X POST http://${env.SAFESHIP_EC2_IP}/score \\
+        //                     -H 'Content-Type: application/json' \\
+        //                     -d '${payload}'""",
+        //                 returnStdout: true
+        //             ).trim()
+
+        //             echo "SafeShip raw response: ${res}"
+
+        //             def result = readJSON text: res
+
+        //             echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+        //             echo "🎯 SafeShip Score : ${result.score} / 100"
+        //             echo "📋 Verdict        : ${result.verdict}"
+        //             echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
+        //             // Store score for downstream stages
+        //             env.SAFESHIP_SCORE   = result.score.toString()
+        //             env.SAFESHIP_VERDICT = result.verdict
+        //             env.DG_BUILD_ID      = result.build_id ?: ''
+
+        //             if (result.verdict == 'BLOCKED') {
+        //                 error("🚫 SafeShip BLOCKED this deploy (score ${result.score}/100). Fix the risk factors and retry.")
+        //             } else if (result.verdict == 'CAUTION') {
+        //                 currentBuild.description = "⚠️ SafeShip CAUTION: ${result.score}/100"
+        //                 echo '⚠️  CAUTION mode — pipeline continues but review is recommended.'
+        //             } else {
+        //                 currentBuild.description = "✅ SafeShip SAFE: ${result.score}/100"
+        //                 echo '✅ SafeShip says SAFE — proceeding with deploy.'
+        //             }
+        //         }
+        //     }
+        // }
         stage('SafeShip Risk Check') {
             steps {
                 script {
+                    // ─────────────────────────────────────────────────────────────
+                    // Current timestamp metadata
+                    // ─────────────────────────────────────────────────────────────
                     def now     = new Date()
                     def hourVal = now.hours
-                    def dayVal  = now.day   // 0 = Sunday … 6 = Saturday
+
+                    // Convert Java weekday -> ML weekday format
+                    // Java:    Sunday=1 ... Saturday=7
+                    // SafeShip expects: Monday=0 ... Sunday=6
+                    def dayVal = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 2
+                    if (dayVal < 0) {
+                        dayVal = 6
+                    }
+
+            // ─────────────────────────────────────────────────────────────
+            // REAL FEATURE EXTRACTION
+            // These values are dynamically extracted from Git/Jenkins
+            // ─────────────────────────────────────────────────────────────
+
+                    // Total files changed in latest commit
+                    def filesChanged = sh(
+                script: 'git diff --name-only HEAD~1 HEAD | wc -l',
+                returnStdout: true
+            ).trim().toInteger()
+
+                    // Detect hotfix branches
+                    // Example:
+                    //   hotfix/payment-bug
+                    //   HOTFIX-auth
+                    def isHotfix = env.BRANCH_NAME?.toLowerCase()?.contains('hotfix') ? 1 : 0
 
                     echo "🚢 SafeShip: scoring deploy at hour=${hourVal}, day=${dayVal}, diff=${env.GIT_DIFF_SIZE} lines"
 
-                    // ── Safe deploy: low failure rate, high test pass, small diff
+                    // ─────────────────────────────────────────────────────────────
+                    // SAFE SHIP PAYLOAD
+                    // ─────────────────────────────────────────────────────────────
                     def payload = """{
-                        "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
-                        "api_key":             "${env.SAFESHIP_API_KEY}",
-                        "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
-                        "files_changed":       1,
-                        "hour_of_day":         ${hourVal},
-                        "day_of_week":         ${dayVal},
-                        "recent_failure_rate": 0.0,
-                        "test_pass_rate":      1.0,
-                        "is_hotfix":           0,
-                        "deployer_exp":        120,
-                        "days_since_deploy":   1.0,
-                        "build_time_delta":    0.0
-                    }"""
+                "tenant_id":           "${env.SAFESHIP_TENANT_ID}",
+                "api_key":             "${env.SAFESHIP_API_KEY}",
 
+                // REAL FEATURES
+                "diff_size":           ${env.GIT_DIFF_SIZE ?: 10},
+                "files_changed":       ${filesChanged},
+                "hour_of_day":         ${hourVal},
+                "day_of_week":         ${dayVal},
+                "is_hotfix":           ${isHotfix},
+
+                // ─────────────────────────────────────────────
+                // HARDCODED PLACEHOLDER FEATURES
+                // These are currently mocked values.
+                // In future they should come from:
+                //
+                // recent_failure_rate -> deployment history DB
+                // test_pass_rate      -> JUnit / Pytest reports
+                // deployer_exp        -> engineer deployment history
+                // days_since_deploy   -> deployment timestamps
+                // build_time_delta    -> CI/CD metrics history
+                // ─────────────────────────────────────────────
+
+                "recent_failure_rate": 0.0,
+                "test_pass_rate":      1.0,
+                "deployer_exp":        120,
+                "days_since_deploy":   1.0,
+                "build_time_delta":    0.0
+            }"""
+
+                    // ─────────────────────────────────────────────────────────────
+                    // Send scoring request to SafeShip backend
+                    // ─────────────────────────────────────────────────────────────
                     def res = sh(
-                        script: """curl -s --max-time 10 -X POST http://${env.SAFESHIP_EC2_IP}/score \\
-                            -H 'Content-Type: application/json' \\
-                            -d '${payload}'""",
-                        returnStdout: true
-                    ).trim()
+                script: """curl -s --max-time 10 -X POST http://${env.SAFESHIP_EC2_IP}/score \\
+                    -H 'Content-Type: application/json' \\
+                    -d '${payload}'""",
+                returnStdout: true
+            ).trim()
 
                     echo "SafeShip raw response: ${res}"
 
@@ -79,18 +184,23 @@ pipeline {
                     echo "📋 Verdict        : ${result.verdict}"
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 
-                    // Store score for downstream stages
+                    // Store values for downstream stages
                     env.SAFESHIP_SCORE   = result.score.toString()
                     env.SAFESHIP_VERDICT = result.verdict
                     env.DG_BUILD_ID      = result.build_id ?: ''
 
+                    // ─────────────────────────────────────────────────────────────
+                    // Deployment gating logic
+                    // ─────────────────────────────────────────────────────────────
                     if (result.verdict == 'BLOCKED') {
                         error("🚫 SafeShip BLOCKED this deploy (score ${result.score}/100). Fix the risk factors and retry.")
-                    } else if (result.verdict == 'CAUTION') {
+            } else if (result.verdict == 'CAUTION') {
                         currentBuild.description = "⚠️ SafeShip CAUTION: ${result.score}/100"
-                        echo '⚠️  CAUTION mode — pipeline continues but review is recommended.'
-                    } else {
+
+                        echo '⚠️ CAUTION mode — pipeline continues but review is recommended.'
+            } else {
                         currentBuild.description = "✅ SafeShip SAFE: ${result.score}/100"
+
                         echo '✅ SafeShip says SAFE — proceeding with deploy.'
                     }
                 }
